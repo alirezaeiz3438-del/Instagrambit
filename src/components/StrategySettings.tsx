@@ -87,13 +87,51 @@ export const StrategySettings: React.FC<StrategySettingsProps> = ({ strategy, on
           </div>
 
           <div>
-            <label className="block font-medium text-[#a1a1aa] mb-1.5">سبک بصری تصاویر (Visual Style)</label>
+            <label className="block font-medium text-[#a1a1aa] mb-2">سبک بصری و استایل گرافیکی تصاویر (Visual Style)</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 mb-3">
+              {[
+                { key: 'photorealistic', name: 'عکاسی واقع‌گرایانه', icon: '📸', desc: 'دوربین حرفه‌ای، نور طبیعی' },
+                { key: 'cinematic', name: 'سینمایی و دراماتیک', icon: '🎬', desc: 'قاب هالیوودی، لنز آنامورفیک' },
+                { key: 'modern_tech', name: 'تکنولوژی مدرن', icon: '💻', desc: 'فضای استودیویی و گجت‌ها' },
+                { key: '3d_render', name: 'رندر ۳ بعدی', icon: '🧊', desc: 'استایل ایزومتریک و براق' },
+                { key: 'cyberpunk', name: 'سایبرپانک و نئون', icon: '🌆', desc: 'نور نئون و فضاهای تاریک' },
+                { key: 'flat_vector', name: 'تصویرسازی وکتور', icon: '🎨', desc: 'اشکال تمیز و گرادیان' },
+                { key: 'minimal_luxury', name: 'مینیمال لوکس', icon: '✨', desc: 'پالت کرم و نود، استایل شیک' },
+                { key: 'anime', name: 'انیمه و دیجیتال', icon: '🖼️', desc: 'نقاشی دیجیتال مفهومی' },
+                { key: 'vintage', name: 'وینتیج دهه ۹۰', icon: '🎞️', desc: 'گرین نرم، فیلم آنالوگ' },
+                { key: 'dark_mode', name: 'تاریک و نئونی', icon: '🌙', desc: 'کنتراست بالا، تم زغالی' },
+              ].map((styleItem) => {
+                const isSelected = formData.visualStyle?.toLowerCase().includes(styleItem.key) || formData.visualStyle === styleItem.name;
+                return (
+                  <button
+                    key={styleItem.key}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, visualStyle: styleItem.name })}
+                    className={`p-3 rounded-2xl border text-right transition-all flex flex-col justify-between min-h-[90px] ${
+                      isSelected
+                        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-500/10'
+                        : 'bg-[#09090b] border-[#27272a] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="text-lg">{styleItem.icon}</span>
+                      {isSelected && <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>}
+                    </div>
+                    <div>
+                      <div className="font-bold text-[11px] text-[#fafafa]">{styleItem.name}</div>
+                      <div className="text-[9px] text-zinc-500 mt-0.5 line-clamp-1">{styleItem.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
             <input
               type="text"
               value={formData.visualStyle}
               onChange={(e) => setFormData({ ...formData, visualStyle: e.target.value })}
-              placeholder="توضیح پالت رنگی و استایل گرافیست..."
-              className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-4 py-2.5 text-[#fafafa] focus:outline-none focus:border-indigo-500"
+              placeholder="توضیح دلخواه و سفارشی سبک بصری یا پالت رنگی پیج..."
+              className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-4 py-2.5 text-[#fafafa] focus:outline-none focus:border-indigo-500 text-xs"
             />
           </div>
         </div>

@@ -324,19 +324,18 @@ function buildEnglishVisualPrompt(
 ): string {
   const isAscii = /^[\x00-\x7F\s\w.,!?-]+$/.test(rawPrompt || '') && (rawPrompt || '').trim().length > 12;
 
-  const nicheName = strategy.niche || 'Technology & Innovation';
-  const brandStyle = strategy.visualStyle || 'Modern Photorealistic';
+  const nicheName = strategy.niche || 'General Business';
   const primaryColor = brandAssets.primaryColor || '#6366f1';
 
-  let subjectText = (title || 'Subject photography').toLowerCase();
+  let subjectText = (title || 'Subject scene').toLowerCase();
 
   if (isAscii && rawPrompt) {
     subjectText = rawPrompt.trim();
   } else {
-    // Translate Persian keywords to REAL physical subjects & people rather than abstract 3D graphic concepts
+    // Translate Persian keywords to physical subjects & scenes
     let translated = subjectText
       .replace(/اکسل|جدول|فرمول/gi, 'real professional office worker working on excel spreadsheets on computer screen in modern bright office')
-      .replace(/هوش مصنوعی|ai/gi, 'real person working on modern laptop with clean desk and daylight, realistic photo')
+      .replace(/هوش مصنوعی|ai/gi, 'real person working on modern laptop with clean desk and daylight')
       .replace(/اینستاگرام/g, 'professional content creator holding DSLR camera in bright modern studio setting')
       .replace(/فالوور/g, 'happy young professional smiling while checking phone in modern cafe')
       .replace(/ربات/g, 'modern high-tech robotic assistant in clean research laboratory with real human engineers')
@@ -358,20 +357,45 @@ function buildEnglishVisualPrompt(
     }
   }
 
-  // Remove meta keywords that trick image models into rendering poster layouts, text covers or 3D art
+  // Remove meta keywords that trick image models into rendering poster layouts or text covers
   subjectText = subjectText
     .replace(/\b(cover|poster|banner|template|layout|instagram artwork|post artwork|slide cover|thumbnail|text|typography|logo|border|frame)\b/gi, '')
     .trim();
 
   if (!subjectText) {
-    subjectText = `real life scene in ${nicheName}`;
+    subjectText = `authentic realistic scene representing ${nicheName}`;
+  }
+
+  const chosenStyle = (style || strategy.visualStyle || 'photorealistic').toLowerCase();
+
+  // Map to distinct visual art styles
+  let styleSuffix = `Professional award winning photorealistic photograph of ${subjectText}, shot on 85mm portrait camera lens, real human subjects, natural soft lighting, authentic depth of field, 8k resolution, sharp focus, real life environment in ${nicheName}, no 3d render, no cgi, no illustration, no text, no watermark`;
+
+  if (chosenStyle.includes('cinematic') || chosenStyle.includes('سینمایی')) {
+    styleSuffix = `Dramatic cinematic movie still of ${subjectText}, shot on anamorphic lens, 35mm film color grade, moody lighting, deep shadows, cinematic depth of field, 8k resolution, photorealistic, no text, no watermark`;
+  } else if (chosenStyle.includes('3d') || chosenStyle.includes('سه بعدی') || chosenStyle.includes('clay')) {
+    styleSuffix = `Vibrant 3D octane render of ${subjectText}, smooth glossy claymorphic art style, soft studio volumetric lighting, isometric 3D view, clean studio background, 8k resolution, high detailed 3D artwork, no text, no watermark`;
+  } else if (chosenStyle.includes('cyber') || chosenStyle.includes('neon') || chosenStyle.includes('سایبر')) {
+    styleSuffix = `Futuristic cyberpunk scene of ${subjectText}, vivid neon cyan and magenta glow, dark rain-slicked moody reflections, high tech aesthetic, detailed cinematic shot, 8k resolution, no text, no watermark`;
+  } else if (chosenStyle.includes('flat') || chosenStyle.includes('vector') || chosenStyle.includes('وکتور')) {
+    styleSuffix = `Modern flat vector illustration of ${subjectText}, clean corporate art style, bold geometric shapes, smooth color gradients, elegant digital artwork, color accent ${primaryColor}, no text, no watermark`;
+  } else if (chosenStyle.includes('luxury') || chosenStyle.includes('لوکس') || chosenStyle.includes('minimal')) {
+    styleSuffix = `Minimalist luxury aesthetic photograph of ${subjectText}, neutral warm beige and dark slate palette, soft ambient studio shadow, high-end editorial composition, 8k resolution, no text, no watermark`;
+  } else if (chosenStyle.includes('anime') || chosenStyle.includes('انیمه')) {
+    styleSuffix = `Detailed anime concept art of ${subjectText}, Studio Ghibli inspired, vibrant colors, atmospheric lighting, beautiful digital painting, 8k, no text, no watermark`;
+  } else if (chosenStyle.includes('vintage') || chosenStyle.includes('retro') || chosenStyle.includes('وینتیج')) {
+    styleSuffix = `Retro 1990s vintage analog film photograph of ${subjectText}, warm Kodak Gold color grading, subtle film grain, nostalgic atmosphere, 8k resolution, no text, no watermark`;
+  } else if (chosenStyle.includes('dark') || chosenStyle.includes('تاریک')) {
+    styleSuffix = `Sleek dark mode luxury aesthetic of ${subjectText}, deep charcoal canvas background (#09090b), vibrant glowing indigo accents (${primaryColor}), modern high-contrast digital composition, 8k, no text, no watermark`;
+  } else if (chosenStyle.includes('tech') || chosenStyle.includes('تکنولوژی')) {
+    styleSuffix = `Sleek modern high-tech studio photography of ${subjectText}, clean minimalist workspace, subtle ambient glow, high-end professional camera shot, 8k resolution, no text, no watermark`;
   }
 
   if (mediaType === 'video') {
-    return `Award winning candid photorealistic photograph of ${subjectText}, shot on 35mm Canon EOS lens, f/1.8 depth of field, real human subject, authentic skin texture, natural studio lighting, 8k resolution, crisp detail, photorealistic real photo, no 3d render, no cgi, no vector art, no drawing, no illustration, no logo, no text`;
+    return `${styleSuffix}, dynamic motion composition, 9:16 vertical frame aspect ratio`;
   }
 
-  return `Professional award winning photorealistic photograph of ${subjectText}, shot on 85mm portrait camera lens, real human subjects, natural soft lighting, authentic depth of field, 8k resolution, sharp focus, real life environment in ${nicheName}, no 3d render, no cgi, no illustration, no cartoon, no graphic design, no text, no watermark`;
+  return styleSuffix;
 }
 
 app.post('/api/posts/generate', async (req, res) => {
@@ -399,26 +423,26 @@ app.post('/api/posts/generate', async (req, res) => {
       const { ai, profile } = getRotatedAIClient();
       profileName = profile.name;
 
-      const prompt = `شما یک تولیدکننده محتوای برتر اینستاگرام هستید.
-عنوان ایده: ${ideaTitle}
-توضیحات: ${ideaDescription || ''}
-موضوع پیج: ${strategy.niche}
-مخاطب: ${strategy.targetAudience}
-لحن: ${strategy.tone}
-سبک بصری: ${strategy.visualStyle}
-دستورالعمل پایه: ${strategy.customSystemPrompt}
-ترجیح CTA: ${strategy.ctaPreference}
+      const prompt = `شما یک استراتژیست ارشد و محتواساز نخبه اینستاگرام با تسلط بر الگوریتم‌های رشد پیج هستید.
+موضوع اصلی پیج (Niche): ${strategy.niche}
+مخاطب هدف: ${strategy.targetAudience}
+لحن بیان: ${strategy.tone}
+سبک بصری انتخاب شده: ${style || strategy.visualStyle}
+دستورالعمل‌های پایه پیج: ${strategy.customSystemPrompt}
+فراخوان به عمل (CTA): ${strategy.ctaPreference}
 
-یک پست کامل اینستاگرام بسازید شامل:
-۱. کپشن جذاب با قلاب در سطر اول، بدنه با بخش‌بندی منظم و ایموجی، و فراخوان به عمل (CTA)
-۲. ۵ تا ۱۰ هشتگ تخصصی و پربازدید به زبان فارسی
-۳. یک پرامپت تصویری توصیفی به زبان انگلیسی (۲۵ الی ۴۵ کلمه) برای AI Image Generator. فقط صحنه، سوژه، اشیاء، افراد، نورپردازی و محیط واقعی موضوع را توصیف کند و به هیچ عنوان کلمات 'کاور'، 'پوستر'، 'متن'، 'اینستاگرام' یا 'لوگو' نداشته باشد.
+ایده پست درخواستی:
+عنوان: ${ideaTitle}
+توضیحات: ${ideaDescription || 'توضیح کامل موضوع'}
 
-پاسخ را دقیقا به ساختار JSON زیر ارسال کنید:
+لطفاً یک پست کاملاً تخصصی، عمیق، غنی و مرتبط با موضوع "${ideaTitle}" بسازید.
+از ارائه مطالب سطحی، کلیشه‌ای و عمومی خودداری کنید. محتوا باید دقیقاً به سوالات، چالش‌ها و نکات عملی مربوط به این موضوع بپردازد.
+
+پاسخ را دقیقاً به ساختار JSON زیر ارسال کنید:
 {
-  "caption": "متن کامل کپشن فارسی",
+  "caption": "متن کامل کپشن فارسی همراه با قلاب در سطر اول، بدنه روان با بخش‌بندی و ایموجی، و CTA صریح و جذاب",
   "hashtags": ["#هشتگ۱", "#هشتگ۲"],
-  "imagePrompt": "Detailed photorealistic English scene prompt describing real subject matter without text or cover layout words"
+  "imagePrompt": "Detailed English scene prompt describing real subject, visual scene, lighting, and style without words like poster, cover, text, watermark"
 }`;
 
       const response = await ai.models.generateContent({
