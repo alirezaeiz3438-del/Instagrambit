@@ -319,37 +319,38 @@ app.get('/api/posts', (req, res) => {
 function buildEnglishVisualPrompt(
   rawPrompt: string,
   title: string,
-  style = 'modern',
+  style = 'photorealistic',
   mediaType: 'image' | 'video' = 'image'
 ): string {
   const isAscii = /^[\x00-\x7F\s\w.,!?-]+$/.test(rawPrompt || '') && (rawPrompt || '').trim().length > 12;
 
   const nicheName = strategy.niche || 'Technology & Innovation';
-  const brandStyle = strategy.visualStyle || 'Modern Minimalist';
+  const brandStyle = strategy.visualStyle || 'Modern Photorealistic';
   const primaryColor = brandAssets.primaryColor || '#6366f1';
 
-  let subjectText = (title || 'Subject illustration').toLowerCase();
+  let subjectText = (title || 'Subject photography').toLowerCase();
 
   if (isAscii && rawPrompt) {
     subjectText = rawPrompt.trim();
   } else {
-    // Translate Persian keywords to English subject concepts
+    // Translate Persian keywords to REAL physical subjects & people rather than abstract 3D graphic concepts
     let translated = subjectText
-      .replace(/هوش مصنوعی|ai/gi, 'artificial intelligence neural network digital interface')
-      .replace(/اینستاگرام/g, 'digital content creator workstation')
-      .replace(/فالوور/g, 'audience growth dashboard visualization')
-      .replace(/ربات/g, 'futuristic humanoid robot assistant')
-      .replace(/برنامه‌نویسی|کدنویسی/g, 'software developer coding on multi monitors')
-      .replace(/کسب و کار|تجارت/g, 'modern corporate office strategy meeting')
-      .replace(/تکنولوژی|فناوری/g, 'cutting edge tech gadget laboratory')
-      .replace(/ویدیو|فیلم|ریلز/g, 'filmmaker camera production set')
-      .replace(/عکس|تصویر/g, 'professional photography studio camera')
-      .replace(/کاروسل|اسلاید/g, 'modern visual presentation diagram')
-      .replace(/فروش|دیجیتال مارکتینگ/g, 'e-commerce sales analytics and growth graph')
-      .replace(/آموزش|یادگیری/g, 'interactive classroom learning environment')
-      .replace(/سلامت|تغذیه/g, 'healthy fresh organic bowl and wellness gym')
-      .replace(/سرگرمی|بازی/g, 'vibrant esports gaming setup')
-      .replace(/مالی|پول|سرمایه‌گذاری/g, 'financial market stock chart and crypto trading');
+      .replace(/اکسل|جدول|فرمول/gi, 'real professional office worker working on excel spreadsheets on computer screen in modern bright office')
+      .replace(/هوش مصنوعی|ai/gi, 'real person working on modern laptop with clean desk and daylight, realistic photo')
+      .replace(/اینستاگرام/g, 'professional content creator holding DSLR camera in bright modern studio setting')
+      .replace(/فالوور/g, 'happy young professional smiling while checking phone in modern cafe')
+      .replace(/ربات/g, 'modern high-tech robotic assistant in clean research laboratory with real human engineers')
+      .replace(/برنامه‌نویسی|کدنویسی/g, 'real programmer typing code on dual computer monitors in cozy office workspace')
+      .replace(/کسب و کار|تجارت/g, 'real business people having meeting around wooden conference table')
+      .replace(/تکنولوژی|فناوری/g, 'person using sleek modern smartphone and tech devices in modern living room')
+      .replace(/ویدیو|فیلم|ریلز/g, 'videographer holding professional camera on real filming location set')
+      .replace(/عکس|تصویر/g, 'photographer adjusting camera lens in studio')
+      .replace(/کاروسل|اسلاید/g, 'person presenting ideas on whiteboard in modern bright room')
+      .replace(/فروش|دیجیتال مارکتینگ/g, 'digital marketer working on laptop with coffee on wooden desk')
+      .replace(/آموزش|یادگیری/g, 'student learning online on laptop with notebook and pen in warm library')
+      .replace(/سلامت|تغذیه/g, 'real person preparing fresh healthy salad with colorful organic vegetables in clean kitchen')
+      .replace(/سرگرمی|بازی/g, 'real gamer sitting in ergonomic chair with subtle desk lighting')
+      .replace(/مالی|پول|سرمایه‌گذاری/g, 'financial advisor reviewing real charts on tablet screen in modern office');
 
     translated = translated.replace(/[^\x00-\x7F]/g, ' ').replace(/\s+/g, ' ').trim();
     if (translated.length > 5) {
@@ -357,20 +358,20 @@ function buildEnglishVisualPrompt(
     }
   }
 
-  // Remove meta keywords that trick image models into rendering poster layouts or text covers
+  // Remove meta keywords that trick image models into rendering poster layouts, text covers or 3D art
   subjectText = subjectText
     .replace(/\b(cover|poster|banner|template|layout|instagram artwork|post artwork|slide cover|thumbnail|text|typography|logo|border|frame)\b/gi, '')
     .trim();
 
   if (!subjectText) {
-    subjectText = `${nicheName} subject matter`;
+    subjectText = `real life scene in ${nicheName}`;
   }
 
   if (mediaType === 'video') {
-    return `Cinematic 9:16 vertical motion camera shot of ${subjectText}, realistic photography, dynamic action scene, high contrast depth of field, professional lighting, 8k resolution, crisp details, photorealistic film scene, no text, no watermark, no poster layout`;
+    return `Award winning candid photorealistic photograph of ${subjectText}, shot on 35mm Canon EOS lens, f/1.8 depth of field, real human subject, authentic skin texture, natural studio lighting, 8k resolution, crisp detail, photorealistic real photo, no 3d render, no cgi, no vector art, no drawing, no illustration, no logo, no text`;
   }
 
-  return `High quality realistic photograph of ${subjectText}, realistic scene in ${nicheName} context, ${brandStyle} aesthetic, studio lighting, vivid sharp focus, 8k resolution, detailed photography, color accent ${primaryColor}, no text, no letters, no watermark, no poster design, no cover layout`;
+  return `Professional award winning photorealistic photograph of ${subjectText}, shot on 85mm portrait camera lens, real human subjects, natural soft lighting, authentic depth of field, 8k resolution, sharp focus, real life environment in ${nicheName}, no 3d render, no cgi, no illustration, no cartoon, no graphic design, no text, no watermark`;
 }
 
 app.post('/api/posts/generate', async (req, res) => {
