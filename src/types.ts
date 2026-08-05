@@ -28,7 +28,7 @@ export interface PageStrategy {
 }
 
 export type PostStatus = 'draft' | 'pending_approval' | 'scheduled' | 'published' | 'failed';
-export type PostType = 'post' | 'reels' | 'story';
+export type PostType = 'post' | 'reels' | 'story' | 'carousel';
 
 export interface PostMetrics {
   likes: number;
@@ -37,6 +37,14 @@ export interface PostMetrics {
   shares: number;
   reach: number;
   engagementRate: number;
+}
+
+export interface CarouselSlide {
+  slideNumber: number;
+  title: string;
+  bodyText: string;
+  imagePrompt: string;
+  imageUrl: string;
 }
 
 export interface VideoScene {
@@ -53,6 +61,7 @@ export interface PostItem {
   hashtags: string[];
   imagePrompt: string;
   imageUrl?: string;
+  carouselSlides?: CarouselSlide[];
   videoUrl?: string;
   videoPrompt?: string;
   videoScript?: string;

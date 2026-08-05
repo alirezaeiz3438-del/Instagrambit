@@ -124,6 +124,25 @@ export const api = {
     return res.json();
   },
 
+  generateCarousel: async (carouselTitle: string, carouselTopic?: string, slideCount: number = 5): Promise<PostItem> => {
+    const res = await fetch('/api/carousels/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ carouselTitle, carouselTopic, slideCount }),
+    });
+    const data = await res.json();
+    return data.post;
+  },
+
+  generateStandaloneImage: async (prompt: string, style?: string, width?: number, height?: number): Promise<{ imageUrl: string; prompt: string }> => {
+    const res = await fetch('/api/images/standalone-generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, style, width, height }),
+    });
+    return res.json();
+  },
+
   generateVideo: async (videoTitle: string, videoTopic?: string, durationSeconds: number = 15): Promise<PostItem> => {
     const res = await fetch('/api/videos/generate', {
       method: 'POST',

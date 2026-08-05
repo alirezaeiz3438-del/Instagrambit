@@ -318,10 +318,22 @@ app.get('/api/posts', (req, res) => {
 app.post('/api/posts/generate', async (req, res) => {
   try {
     const { ideaTitle, ideaDescription, postType = 'post' } = req.body;
+
+    // Handle carousel request
+    if (postType === 'carousel') {
+      return res.redirect(307, '/api/carousels/generate');
+    }
+    // Handle reels request
+    if (postType === 'reels') {
+      req.body.videoTitle = ideaTitle;
+      req.body.videoTopic = ideaDescription;
+      return res.redirect(307, '/api/videos/generate');
+    }
+
     let caption = '';
     let hashtags = strategy.defaultHashtags || ['#هوش_مصنوعی', '#تکنولوژی', '#اینستاگرام'];
     let imagePrompt = `Minimalist stylish Instagram post background for ${ideaTitle}`;
-    let generatedImageUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1000&q=80';
+    let generatedImageUrl = '';
     let profileName = 'موتور تولید محلی';
 
     try {
@@ -382,7 +394,7 @@ app.post('/api/posts/generate', async (req, res) => {
           }
         }
       } catch (imgErr: any) {
-        // High quality fallback AI image generator via Pollinations AI API
+        // High quality AI image generator via Pollinations AI API
         const cleanPrompt = encodeURIComponent(imagePrompt || ideaTitle || 'Instagram post banner');
         const seed = Math.floor(Math.random() * 999999);
         generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&seed=${seed}`;
@@ -391,6 +403,11 @@ app.post('/api/posts/generate', async (req, res) => {
     } catch (aiErr: any) {
       logSystem('warn', 'ai_engine', `تولید کپشن و محتوا با الگوی هوشمند محلی (علت: ${aiErr.message || 'عدم دسترسی به Gemini API'})`);
       caption = `🚀 ${ideaTitle}\n\n${ideaDescription || 'در این پست به بررسی کامل این راهکار هوشمند می‌پردازیم.'}\n\n💡 نکات کلیدی که باید بدانید:\n• کاربرد مستقیم و عملی در بهینه‌سازی کارهای روزمره\n• افزایش سرعت، راندمان و کیفیت خروجی\n• کاهش هزینه‌ها و صرفه‌جویی در زمان\n\n📌 این پست را ذخیره کنید و برای دوستانتان بفرستید!\n💬 نظر یا سوال خود را در کامنت‌ها بنویسید.`;
+      const cleanPrompt = encodeURIComponent(imagePrompt || ideaTitle || 'Instagram post');
+      generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&seed=${Math.floor(Math.random() * 999999)}`;
+    }
+
+    if (!generatedImageUrl) {
       const cleanPrompt = encodeURIComponent(imagePrompt || ideaTitle || 'Instagram post');
       generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&seed=${Math.floor(Math.random() * 999999)}`;
     }
@@ -413,6 +430,139 @@ app.post('/api/posts/generate', async (req, res) => {
     res.json({ success: true, post: newPost });
   } catch (err: any) {
     logSystem('error', 'ai_engine', `خطا در تولید پست: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// AI Carousel Generator Route (پست‌های اسلایدی / کاروسل اینستاگرام)
+app.post('/api/carousels/generate', async (req, res) => {
+  try {
+    const carouselTitle = req.body.carouselTitle || req.body.ideaTitle || 'پست اسلایدی هوشمند';
+    const carouselTopic = req.body.carouselTopic || req.body.ideaDescription || '';
+    const slideCount = req.body.slideCount || 5;
+
+    let slides: any[] = [];
+    let caption = '';
+    let hashtags = strategy.defaultHashtags || ['#کاروسل', '#آموزش', '#هوش_مصنوعی'];
+    let profileName = 'موتور کاروسل ساز AI';
+
+    try {
+      const { ai, profile } = getRotatedAIClient();
+      profileName = profile.name;
+
+      const prompt = `شما یک طراح و محتواساز ارشد پست‌های اسلایدی (Carousel) اینستاگرام هستید.
+عنوان کاروسل: ${carouselTitle}
+موضوع: ${carouselTopic || ''}
+تعداد اسلایدها: ${slideCount} اسلاید
+موضوع پیج: ${strategy.niche}
+لحن: ${strategy.tone}
+
+یک پست اسلایدی جذاب بسازید شامل:
+۱. اسلاید ۱: کاور اصلی با تیتر قلاب‌دار (Hook)
+۲. اسلایدهای وسط (۲ تا ${slideCount - 1}): آموزش یا بررسی نکته به نکته
+۳. اسلاید آخر (${slideCount}): نتیجه‌گیری و دعوت به فالو / ذخیره (CTA)
+۴. کپشن کامل فارسی و هشتگ‌های مناسب
+
+پاسخ را دقیقا به فرمت JSON زیر ارسال کنید:
+{
+  "caption": "متن کامل کپشن کاروسل به فارسی همراه با ایموجی و CTA...",
+  "hashtags": ["#کاروسل", "#تکنولوژی"],
+  "slides": [
+    {
+      "slideNumber": 1,
+      "title": "تیتر کاور اصلی",
+      "bodyText": "زیرتیتر جذابی که باعث میشه کاربر ورق بزنه!",
+      "imagePrompt": "Minimalist high tech cover slide background with vibrant glow"
+    }
+  ]
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.6-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+
+      const parsed = JSON.parse(response.text || '{}');
+      if (parsed.caption) caption = parsed.caption;
+      if (parsed.hashtags) hashtags = parsed.hashtags;
+
+      if (parsed.slides && Array.isArray(parsed.slides)) {
+        slides = parsed.slides.map((s: any, idx: number) => {
+          const slidePrompt = encodeURIComponent(s.imagePrompt || `${carouselTitle} slide ${idx + 1}`);
+          const seed = Math.floor(Math.random() * 999999) + idx;
+          return {
+            slideNumber: idx + 1,
+            title: s.title || `اسلاید ${idx + 1}`,
+            bodyText: s.bodyText || '',
+            imagePrompt: s.imagePrompt || `${carouselTitle} slide ${idx + 1}`,
+            imageUrl: `https://image.pollinations.ai/prompt/${slidePrompt}?width=1080&height=1080&nologo=true&seed=${seed}`,
+          };
+        });
+      }
+    } catch (aiErr: any) {
+      logSystem('warn', 'ai_engine', `تولید اسلایدهای کاروسل با الگوی پشتیبان محلی (علت: ${aiErr.message || 'عدم دسترسی Gemini'})`);
+      caption = `📚 پست اسلایدی: ${carouselTitle}\n\nورق بزنید و تمام اسلایدها را مطالعه کنید! 📌\n\nنظرات خود را در کامنت بنویسید.`;
+    }
+
+    if (slides.length === 0) {
+      const fallbackSlideCount = Number(slideCount) || 5;
+      slides = Array.from({ length: fallbackSlideCount }).map((_, idx) => {
+        const slidePrompt = encodeURIComponent(`Abstract modern Instagram slide ${idx + 1} for ${carouselTitle}`);
+        const seed = Math.floor(Math.random() * 999999) + idx * 100;
+        return {
+          slideNumber: idx + 1,
+          title: idx === 0 ? carouselTitle : idx === fallbackSlideCount - 1 ? 'نتیجه‌گیری و اقدام' : `نکته کلیدی شماره ${idx}`,
+          bodyText: idx === 0 ? 'ورق بزنید تا ۵ راهکار طلایی را ببینید!' : idx === fallbackSlideCount - 1 ? 'این پست را ذخیره کنید و برای دوستانتان بفرستید!' : `در این بخش به تحلیل و بررسی دقیق موضوع ${carouselTitle} می‌پردازیم.`,
+          imagePrompt: `Instagram carousel slide ${idx + 1}`,
+          imageUrl: `https://image.pollinations.ai/prompt/${slidePrompt}?width=1080&height=1080&nologo=true&seed=${seed}`,
+        };
+      });
+    }
+
+    const newCarouselPost: PostItem = {
+      id: `carousel-${Date.now()}`,
+      title: carouselTitle,
+      caption: caption || `📚 ${carouselTitle}`,
+      hashtags,
+      imagePrompt: slides[0]?.imagePrompt || carouselTitle,
+      imageUrl: slides[0]?.imageUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe',
+      carouselSlides: slides,
+      postType: 'carousel',
+      status: 'pending_approval',
+      createdAt: new Date().toISOString(),
+      aiProfileUsed: profileName,
+    };
+
+    posts.unshift(newCarouselPost);
+    logSystem('success', 'ai_engine', `پست کاروسل اسلایدی جدید (${slides.length} اسلاید) با موفقیت تولید شد.`);
+    res.json({ success: true, post: newCarouselPost });
+  } catch (err: any) {
+    logSystem('error', 'ai_engine', `خطا در تولید کاروسل: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Standalone Custom Image Generator Route
+app.post('/api/images/standalone-generate', async (req, res) => {
+  try {
+    const { prompt, style = 'minimal', width = 1080, height = 1080 } = req.body;
+    const stylePrefix =
+      style === 'photo'
+        ? 'Photorealistic 8k sharp photo of '
+        : style === '3d'
+        ? '3D render vibrant futuristic graphic of '
+        : style === 'cyberpunk'
+        ? 'Neon glowing cyberpunk artistic style '
+        : 'Minimalist clean aesthetic ';
+    const fullPrompt = `${stylePrefix}${prompt || 'Instagram post graphic'}`;
+    const cleanPrompt = encodeURIComponent(fullPrompt);
+    const seed = Math.floor(Math.random() * 999999);
+    const imageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
+
+    logSystem('success', 'ai_engine', `تصویر جدید با سبک ${style} تولید شد.`);
+    res.json({ success: true, imageUrl, prompt: fullPrompt });
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
