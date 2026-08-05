@@ -315,6 +315,37 @@ app.get('/api/posts', (req, res) => {
   res.json({ posts });
 });
 
+// Helper to build high-quality English visual prompts for AI Image/Video Generators
+function buildEnglishVisualPrompt(rawPrompt: string, title: string, style = 'modern'): string {
+  const isAscii = /^[\x00-\x7F\s\w.,!?-]+$/.test(rawPrompt || '') && (rawPrompt || '').trim().length > 10;
+  if (isAscii && rawPrompt) {
+    return `${rawPrompt}, high quality 8k, professional instagram graphic design, trending on artstation`;
+  }
+
+  let text = (title || 'Instagram content').toLowerCase();
+  let translated = text
+    .replace(/هوش مصنوعی/g, 'artificial intelligence AI neural network')
+    .replace(/اینستاگرام/g, 'instagram social media marketing')
+    .replace(/فالوور/g, 'social media followers audience growth')
+    .replace(/ربات/g, 'futuristic robot automation')
+    .replace(/برنامه‌نویسی|کدنویسی/g, 'software development programming code')
+    .replace(/کسب و کار|تجارت/g, 'modern business office analytics strategy')
+    .replace(/تکنولوژی|فناوری/g, 'futuristic high technology glow interface')
+    .replace(/ویدیو|فیلم|ریلز/g, 'cinematic vertical video 9:16 production')
+    .replace(/عکس|تصویر/g, 'creative digital photography artwork')
+    .replace(/کاروسل|اسلاید/g, 'carousel slide infographic UI deck')
+    .replace(/فروش|دیجیتال مارکتینگ/g, 'digital marketing e-commerce sales growth')
+    .replace(/آموزش|یادگیری/g, 'educational infographic learning concept')
+    .replace(/سلامت|تغذیه/g, 'healthy lifestyle wellness fitness')
+    .replace(/سرگرمی|بازی/g, 'gaming entertainment graphic art')
+    .replace(/مالی|پول|سرمایه‌گذاری/g, 'finance money stock market cryptocurrency chart');
+
+  translated = translated.replace(/[^\x00-\x7F]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!translated) translated = 'minimalist modern instagram visual design artwork';
+
+  return `Professional Instagram post artwork, subject: ${translated}, style: ${style}, vibrant aesthetic colors, 8k resolution, highly detailed digital art, 3d render`;
+}
+
 app.post('/api/posts/generate', async (req, res) => {
   try {
     const { ideaTitle, ideaDescription, postType = 'post' } = req.body;
@@ -332,7 +363,7 @@ app.post('/api/posts/generate', async (req, res) => {
 
     let caption = '';
     let hashtags = strategy.defaultHashtags || ['#هوش_مصنوعی', '#تکنولوژی', '#اینستاگرام'];
-    let imagePrompt = `Minimalist stylish Instagram post background for ${ideaTitle}`;
+    let imagePrompt = buildEnglishVisualPrompt('', ideaTitle);
     let generatedImageUrl = '';
     let profileName = 'موتور تولید محلی';
 
@@ -353,13 +384,13 @@ app.post('/api/posts/generate', async (req, res) => {
 یک پست کامل اینستاگرام بسازید شامل:
 ۱. کپشن جذاب با قلاب در سطر اول، بدنه با بخش‌بندی منظم و ایموجی، و فراخوان به عمل (CTA)
 ۲. ۵ تا ۱۰ هشتگ تخصصی و پربازدید به زبان فارسی
-۳. یک پرامپت تصویری به زبان انگلیسی برای AI Image Generator (Imagen) که بنر یا عکس این پست را بسازد.
+۳. یک پرامپت تصویری توصیفی به زبان انگلیسی (۲0 الی ۴۰ کلمه) برای AI Image Generator که دقیقا موضوع و سوژه این پست را خَلق کند.
 
 پاسخ را دقیقا به ساختار JSON زیر ارسال کنید:
 {
   "caption": "متن کامل کپشن فارسی",
   "hashtags": ["#هشتگ۱", "#هشتگ۲"],
-  "imagePrompt": "Detailed English image generation prompt"
+  "imagePrompt": "Detailed English image generation prompt describing subject, composition, and style"
 }`;
 
       const response = await ai.models.generateContent({
@@ -371,14 +402,14 @@ app.post('/api/posts/generate', async (req, res) => {
       const parsed = JSON.parse(response.text || '{}');
       if (parsed.caption) caption = parsed.caption;
       if (parsed.hashtags) hashtags = parsed.hashtags;
-      if (parsed.imagePrompt) imagePrompt = parsed.imagePrompt;
+      if (parsed.imagePrompt) imagePrompt = buildEnglishVisualPrompt(parsed.imagePrompt, ideaTitle);
 
       // Try generating visual asset via Imagen or Pollinations AI
       try {
         const imgResponse = await ai.models.generateContent({
           model: 'gemini-3.1-flash-lite-image',
           contents: {
-            parts: [{ text: `Minimalist stylish Instagram post background: ${imagePrompt}` }],
+            parts: [{ text: imagePrompt }],
           },
           config: {
             imageConfig: {
@@ -394,22 +425,21 @@ app.post('/api/posts/generate', async (req, res) => {
           }
         }
       } catch (imgErr: any) {
-        // High quality AI image generator via Pollinations AI API
-        const cleanPrompt = encodeURIComponent(imagePrompt || ideaTitle || 'Instagram post banner');
+        const cleanPrompt = encodeURIComponent(imagePrompt);
         const seed = Math.floor(Math.random() * 999999);
-        generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&seed=${seed}`;
-        logSystem('info', 'ai_engine', `تصویر اختصاصی با استفاده از موتور هوش مصنوعی بصری تولید شد.`);
+        generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${seed}`;
+        logSystem('info', 'ai_engine', `تصویر اختصاصی با استفاده از موتور هوش مصنوعی Flux بصری تولید شد.`);
       }
     } catch (aiErr: any) {
       logSystem('warn', 'ai_engine', `تولید کپشن و محتوا با الگوی هوشمند محلی (علت: ${aiErr.message || 'عدم دسترسی به Gemini API'})`);
       caption = `🚀 ${ideaTitle}\n\n${ideaDescription || 'در این پست به بررسی کامل این راهکار هوشمند می‌پردازیم.'}\n\n💡 نکات کلیدی که باید بدانید:\n• کاربرد مستقیم و عملی در بهینه‌سازی کارهای روزمره\n• افزایش سرعت، راندمان و کیفیت خروجی\n• کاهش هزینه‌ها و صرفه‌جویی در زمان\n\n📌 این پست را ذخیره کنید و برای دوستانتان بفرستید!\n💬 نظر یا سوال خود را در کامنت‌ها بنویسید.`;
-      const cleanPrompt = encodeURIComponent(imagePrompt || ideaTitle || 'Instagram post');
-      generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&seed=${Math.floor(Math.random() * 999999)}`;
+      const cleanPrompt = encodeURIComponent(imagePrompt);
+      generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${Math.floor(Math.random() * 999999)}`;
     }
 
     if (!generatedImageUrl) {
-      const cleanPrompt = encodeURIComponent(imagePrompt || ideaTitle || 'Instagram post');
-      generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&seed=${Math.floor(Math.random() * 999999)}`;
+      const cleanPrompt = encodeURIComponent(imagePrompt);
+      generatedImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${Math.floor(Math.random() * 999999)}`;
     }
 
     const newPost: PostItem = {
@@ -420,7 +450,7 @@ app.post('/api/posts/generate', async (req, res) => {
       imagePrompt,
       imageUrl: generatedImageUrl,
       postType,
-      status: 'pending_approval', // Human-in-the-loop review!
+      status: 'pending_approval',
       createdAt: new Date().toISOString(),
       aiProfileUsed: profileName,
     };
@@ -489,14 +519,15 @@ app.post('/api/carousels/generate', async (req, res) => {
 
       if (parsed.slides && Array.isArray(parsed.slides)) {
         slides = parsed.slides.map((s: any, idx: number) => {
-          const slidePrompt = encodeURIComponent(s.imagePrompt || `${carouselTitle} slide ${idx + 1}`);
+          const slidePromptText = buildEnglishVisualPrompt(s.imagePrompt || '', `${carouselTitle} - slide ${idx + 1} (${s.title || ''})`);
+          const slidePrompt = encodeURIComponent(slidePromptText);
           const seed = Math.floor(Math.random() * 999999) + idx;
           return {
             slideNumber: idx + 1,
             title: s.title || `اسلاید ${idx + 1}`,
             bodyText: s.bodyText || '',
-            imagePrompt: s.imagePrompt || `${carouselTitle} slide ${idx + 1}`,
-            imageUrl: `https://image.pollinations.ai/prompt/${slidePrompt}?width=1080&height=1080&nologo=true&seed=${seed}`,
+            imagePrompt: slidePromptText,
+            imageUrl: `https://image.pollinations.ai/prompt/${slidePrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${seed}`,
           };
         });
       }
@@ -508,14 +539,15 @@ app.post('/api/carousels/generate', async (req, res) => {
     if (slides.length === 0) {
       const fallbackSlideCount = Number(slideCount) || 5;
       slides = Array.from({ length: fallbackSlideCount }).map((_, idx) => {
-        const slidePrompt = encodeURIComponent(`Abstract modern Instagram slide ${idx + 1} for ${carouselTitle}`);
+        const slidePromptText = buildEnglishVisualPrompt('', `${carouselTitle} - slide ${idx + 1}`);
+        const slidePrompt = encodeURIComponent(slidePromptText);
         const seed = Math.floor(Math.random() * 999999) + idx * 100;
         return {
           slideNumber: idx + 1,
           title: idx === 0 ? carouselTitle : idx === fallbackSlideCount - 1 ? 'نتیجه‌گیری و اقدام' : `نکته کلیدی شماره ${idx}`,
           bodyText: idx === 0 ? 'ورق بزنید تا ۵ راهکار طلایی را ببینید!' : idx === fallbackSlideCount - 1 ? 'این پست را ذخیره کنید و برای دوستانتان بفرستید!' : `در این بخش به تحلیل و بررسی دقیق موضوع ${carouselTitle} می‌پردازیم.`,
-          imagePrompt: `Instagram carousel slide ${idx + 1}`,
-          imageUrl: `https://image.pollinations.ai/prompt/${slidePrompt}?width=1080&height=1080&nologo=true&seed=${seed}`,
+          imagePrompt: slidePromptText,
+          imageUrl: `https://image.pollinations.ai/prompt/${slidePrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${seed}`,
         };
       });
     }
@@ -547,20 +579,12 @@ app.post('/api/carousels/generate', async (req, res) => {
 app.post('/api/images/standalone-generate', async (req, res) => {
   try {
     const { prompt, style = 'minimal', width = 1080, height = 1080 } = req.body;
-    const stylePrefix =
-      style === 'photo'
-        ? 'Photorealistic 8k sharp photo of '
-        : style === '3d'
-        ? '3D render vibrant futuristic graphic of '
-        : style === 'cyberpunk'
-        ? 'Neon glowing cyberpunk artistic style '
-        : 'Minimalist clean aesthetic ';
-    const fullPrompt = `${stylePrefix}${prompt || 'Instagram post graphic'}`;
+    const fullPrompt = buildEnglishVisualPrompt(prompt, prompt || 'Instagram post artwork', style);
     const cleanPrompt = encodeURIComponent(fullPrompt);
     const seed = Math.floor(Math.random() * 999999);
-    const imageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&nologo=true&model=flux&seed=${seed}`;
 
-    logSystem('success', 'ai_engine', `تصویر جدید با سبک ${style} تولید شد.`);
+    logSystem('success', 'ai_engine', `تصویر جدید با سبک ${style} و هوش مصنوعی Flux تولید شد.`);
     res.json({ success: true, imageUrl, prompt: fullPrompt });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -573,16 +597,17 @@ app.post('/api/images/generate', async (req, res) => {
     const { postId, customPrompt } = req.body;
     const post = posts.find((p) => p.id === postId);
     const promptText = customPrompt || (post ? post.imagePrompt || post.title : 'Instagram post image banner');
-    const cleanPrompt = encodeURIComponent(promptText);
+    const englishVisualPrompt = buildEnglishVisualPrompt(customPrompt || '', promptText);
+    const cleanPrompt = encodeURIComponent(englishVisualPrompt);
     const seed = Math.floor(Math.random() * 999999);
-    const newImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&seed=${seed}`;
+    const newImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${seed}`;
 
     if (post) {
       post.imageUrl = newImageUrl;
-      if (customPrompt) post.imagePrompt = customPrompt;
+      if (customPrompt || englishVisualPrompt) post.imagePrompt = englishVisualPrompt;
     }
 
-    logSystem('success', 'ai_engine', `تصویر جدید با هوش مصنوعی برای "${post?.title || promptText}" تولید گردید.`);
+    logSystem('success', 'ai_engine', `تصویر اختصاصی Flux برای "${post?.title || promptText}" با موفقیت تولید گردید.`);
     res.json({ success: true, imageUrl: newImageUrl, post });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -654,16 +679,9 @@ app.post('/api/videos/generate', async (req, res) => {
       caption = `🎬 سناریوی ویدیو و ریلز هوشمند: ${videoTitle}\n\n${videoScript}\n\n📌 ذخیره کنید تا گمش نکنید!`;
     }
 
-    // Sample sample video stream URLs for high quality Reel player simulation
-    const sampleVideos = [
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyTouches.mp4',
-    ];
-    const selectedVideoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
-    const coverPrompt = encodeURIComponent(`Vertical Reel 9:16 background for ${videoTitle}`);
-    const coverImageUrl = `https://image.pollinations.ai/prompt/${coverPrompt}?width=720&height=1280&nologo=true&seed=${Math.floor(Math.random() * 999999)}`;
+    const visualPromptText = buildEnglishVisualPrompt(videoPrompt, `Instagram vertical 9:16 Reel about ${videoTitle}`, 'cinematic');
+    const coverPrompt = encodeURIComponent(visualPromptText);
+    const coverImageUrl = `https://image.pollinations.ai/prompt/${coverPrompt}?width=720&height=1280&nologo=true&model=flux&seed=${Math.floor(Math.random() * 999999)}`;
 
     const newVideoPost: PostItem = {
       id: `reel-${Date.now()}`,
@@ -672,7 +690,6 @@ app.post('/api/videos/generate', async (req, res) => {
       hashtags,
       imagePrompt: videoPrompt,
       imageUrl: coverImageUrl,
-      videoUrl: selectedVideoUrl,
       videoPrompt,
       videoScript,
       storyboard,

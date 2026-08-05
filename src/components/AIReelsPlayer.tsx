@@ -20,6 +20,20 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
   const recordedChunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef<number | null>(null);
 
+  // Preload poster image for canvas
+  const bgImgRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (post.imageUrl) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = post.imageUrl;
+      img.onload = () => {
+        bgImgRef.current = img;
+      };
+    }
+  }, [post.imageUrl]);
+
   const scenes: VideoScene[] = post.storyboard && post.storyboard.length > 0 ? post.storyboard : [
     { timestamp: '0:00 - 0:04', sceneDescription: 'قلاب بصری جذاب اولیه', voiceoverText: post.videoScript || post.title, visualPrompt: 'Hook opening' },
     { timestamp: '0:04 - 0:08', sceneDescription: 'معرفی راهکار کلیدی', voiceoverText: post.caption?.substring(0, 60) || post.title, visualPrompt: 'Main solution' },
@@ -70,27 +84,44 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
       const elapsedSeconds = (timestamp - startTimeRef.current) / 1000;
       frameCount++;
 
-      // Background Gradient Animation
-      const grad = ctx.createLinearGradient(0, 0, width, height);
-      if (bgStyle === 'cyberpunk') {
-        const offset = Math.sin(frameCount * 0.02) * 50;
-        grad.addColorStop(0, '#09090b');
-        grad.addColorStop(0.5, '#1e1b4b');
-        grad.addColorStop(1, '#311042');
-      } else if (bgStyle === 'neon_waves') {
-        grad.addColorStop(0, '#020617');
-        grad.addColorStop(0.5, '#0f172a');
-        grad.addColorStop(1, '#1e293b');
-      } else if (bgStyle === '3d_grid') {
-        grad.addColorStop(0, '#18002e');
-        grad.addColorStop(1, '#000000');
-      } else {
-        grad.addColorStop(0, '#042f2e');
-        grad.addColorStop(1, '#020617');
-      }
+      // Background Image / Gradient Animation
+      if (bgImgRef.current && bgImgRef.current.complete) {
+        ctx.save();
+        const scale = 1.1 + Math.sin(frameCount * 0.005) * 0.05;
+        const offsetX = Math.cos(frameCount * 0.003) * 15;
+        const offsetY = Math.sin(frameCount * 0.003) * 15;
+        ctx.translate(width / 2 + offsetX, height / 2 + offsetY);
+        ctx.scale(scale, scale);
+        ctx.drawImage(bgImgRef.current, -width / 2, -height / 2, width, height);
+        ctx.restore();
 
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, width, height);
+        // Dark Vignette overlay for text legibility
+        const vignette = ctx.createRadialGradient(width / 2, height / 2, width * 0.3, width / 2, height / 2, height * 0.7);
+        vignette.addColorStop(0, 'rgba(9, 9, 11, 0.4)');
+        vignette.addColorStop(1, 'rgba(9, 9, 11, 0.85)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, width, height);
+      } else {
+        const grad = ctx.createLinearGradient(0, 0, width, height);
+        if (bgStyle === 'cyberpunk') {
+          grad.addColorStop(0, '#09090b');
+          grad.addColorStop(0.5, '#1e1b4b');
+          grad.addColorStop(1, '#311042');
+        } else if (bgStyle === 'neon_waves') {
+          grad.addColorStop(0, '#020617');
+          grad.addColorStop(0.5, '#0f172a');
+          grad.addColorStop(1, '#1e293b');
+        } else if (bgStyle === '3d_grid') {
+          grad.addColorStop(0, '#18002e');
+          grad.addColorStop(1, '#000000');
+        } else {
+          grad.addColorStop(0, '#042f2e');
+          grad.addColorStop(1, '#020617');
+        }
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+      }
 
       // Draw Animated Particles
       particleArray.forEach((p) => {
@@ -236,7 +267,16 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
       recordedChunksRef.current = [];
 
       const stream = canvas.captureStream(30);
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+      let options: MediaRecorderOptions = {};
+      if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+        options = { mimeType: 'video/webm;codecs=vp9' };
+      } else if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/webm')) {
+        options = { mimeType: 'video/webm' };
+      } else if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported('video/mp4')) {
+        options = { mimeType: 'video/mp4' };
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
