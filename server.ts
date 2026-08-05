@@ -609,11 +609,39 @@ app.post('/api/images/standalone-generate', async (req, res) => {
   try {
     const { prompt, style = 'minimal', width = 1080, height = 1080 } = req.body;
     const fullPrompt = buildEnglishVisualPrompt(prompt, prompt || 'Instagram post artwork', style);
-    const cleanPrompt = encodeURIComponent(fullPrompt);
-    const seed = Math.floor(Math.random() * 999999);
-    const imageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&nologo=true&model=flux&seed=${seed}`;
+    let imageUrl = '';
 
-    logSystem('success', 'ai_engine', `تصویر جدید با سبک ${style} و هوش مصنوعی Flux تولید شد.`);
+    try {
+      const { ai } = getRotatedAIClient();
+      const imgResponse = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite-image',
+        contents: {
+          parts: [{ text: fullPrompt }],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: height > width ? '9:16' : '1:1',
+          },
+        },
+      });
+
+      for (const part of imgResponse.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          break;
+        }
+      }
+    } catch (geminiImgErr: any) {
+      logSystem('info', 'ai_engine', `استفاده از سیستم جایگزین تصویر ساز برای پرامپت Gemini`);
+    }
+
+    if (!imageUrl) {
+      const cleanPrompt = encodeURIComponent(fullPrompt);
+      const seed = Math.floor(Math.random() * 999999);
+      imageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&nologo=true&model=flux&seed=${seed}`;
+    }
+
+    logSystem('success', 'ai_engine', `تصویر جدید اختصاصی هوش مصنوعی Gemini/Flux با موفقیت تولید شد.`);
     res.json({ success: true, imageUrl, prompt: fullPrompt });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -627,16 +655,44 @@ app.post('/api/images/generate', async (req, res) => {
     const post = posts.find((p) => p.id === postId);
     const promptText = customPrompt || (post ? post.imagePrompt || post.title : 'Instagram post image banner');
     const englishVisualPrompt = buildEnglishVisualPrompt(customPrompt || '', promptText);
-    const cleanPrompt = encodeURIComponent(englishVisualPrompt);
-    const seed = Math.floor(Math.random() * 999999);
-    const newImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${seed}`;
+    let newImageUrl = '';
+
+    try {
+      const { ai } = getRotatedAIClient();
+      const imgResponse = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite-image',
+        contents: {
+          parts: [{ text: englishVisualPrompt }],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: '1:1',
+          },
+        },
+      });
+
+      for (const part of imgResponse.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          newImageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          break;
+        }
+      }
+    } catch (geminiImgErr: any) {
+      // fallback
+    }
+
+    if (!newImageUrl) {
+      const cleanPrompt = encodeURIComponent(englishVisualPrompt);
+      const seed = Math.floor(Math.random() * 999999);
+      newImageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1080&height=1080&nologo=true&model=flux&seed=${seed}`;
+    }
 
     if (post) {
       post.imageUrl = newImageUrl;
       if (customPrompt || englishVisualPrompt) post.imagePrompt = englishVisualPrompt;
     }
 
-    logSystem('success', 'ai_engine', `تصویر اختصاصی Flux برای "${post?.title || promptText}" با موفقیت تولید گردید.`);
+    logSystem('success', 'ai_engine', `تصویر اختصاصی Gemini/Flux برای "${post?.title || promptText}" تولید گردید.`);
     res.json({ success: true, imageUrl: newImageUrl, post });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

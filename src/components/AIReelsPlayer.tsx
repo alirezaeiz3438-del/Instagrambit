@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, RotateCcw, Download, Volume2, VolumeX, Sparkles, Film, RefreshCw, Radio } from 'lucide-react';
+import { Play, Pause, RotateCcw, Download, Volume2, VolumeX, Sparkles, Film, RefreshCw, Radio, Camera } from 'lucide-react';
 import { PostItem, VideoScene } from '../types';
 import { api } from '../lib/api';
 
@@ -400,6 +400,21 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
     }
   };
 
+  // Take screenshot frame of current canvas state
+  const handleTakeScreenshot = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `${post.title.substring(0, 15)}-scene${currentSceneIdx + 1}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Screenshot failed:', err);
+    }
+  };
+
   // Export & Record Video Stream from Canvas
   const handleStartRecording = () => {
     const canvas = canvasRef.current;
@@ -550,7 +565,16 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
             } text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2`}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            <span>{isPlaying ? 'توقف پخش ویدیو' : 'پخش ویدیو ریلز با گوینده صوتی'}</span>
+            <span>{isPlaying ? 'توقف پخش' : 'پخش ویدیو با گوینده'}</span>
+          </button>
+
+          <button
+            onClick={handleTakeScreenshot}
+            className="p-2.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] rounded-xl text-rose-300 flex items-center gap-1 text-xs font-medium transition-all"
+            title="ذخیره اسکرین‌شات عکس از فریم جاری"
+          >
+            <Camera className="w-4 h-4 text-rose-400" />
+            <span className="text-[11px] font-semibold">عکس/اسکرین‌شات</span>
           </button>
 
           <button
