@@ -105,11 +105,41 @@ export const api = {
     return data.posts;
   },
 
-  generatePost: async (ideaTitle: string, ideaDescription?: string, postType: PostItem['postType'] = 'post'): Promise<PostItem> => {
+  generatePost: async (
+    ideaTitle: string,
+    ideaDescription?: string,
+    postType: PostItem['postType'] = 'post',
+    options?: { style?: string; durationSeconds?: number }
+  ): Promise<PostItem> => {
+    // Specifically handle video / reels generation requests
+    if (postType === 'reels') {
+      return api.generateVideo(
+        ideaTitle,
+        ideaDescription,
+        options?.durationSeconds || 15,
+        options?.style
+      );
+    }
+
+    // Specifically handle carousel generation requests
+    if (postType === 'carousel') {
+      return api.generateCarousel(
+        ideaTitle,
+        ideaDescription,
+        5
+      );
+    }
+
+    // Specifically handle single image post generation requests
     const res = await fetch('/api/posts/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ideaTitle, ideaDescription, postType }),
+      body: JSON.stringify({
+        ideaTitle,
+        ideaDescription,
+        postType: 'post',
+        style: options?.style || 'editorial',
+      }),
     });
     const data = await res.json();
     return data.post;
@@ -143,11 +173,11 @@ export const api = {
     return res.json();
   },
 
-  generateVideo: async (videoTitle: string, videoTopic?: string, durationSeconds: number = 15): Promise<PostItem> => {
+  generateVideo: async (videoTitle: string, videoTopic?: string, durationSeconds: number = 15, style?: string): Promise<PostItem> => {
     const res = await fetch('/api/videos/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoTitle, videoTopic, durationSeconds }),
+      body: JSON.stringify({ videoTitle, videoTopic, durationSeconds, style }),
     });
     const data = await res.json();
     return data.post;

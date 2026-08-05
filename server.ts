@@ -315,40 +315,60 @@ app.get('/api/posts', (req, res) => {
   res.json({ posts });
 });
 
-// Helper to build high-quality English visual prompts for AI Image/Video Generators
-function buildEnglishVisualPrompt(rawPrompt: string, title: string, style = 'modern'): string {
-  const isAscii = /^[\x00-\x7F\s\w.,!?-]+$/.test(rawPrompt || '') && (rawPrompt || '').trim().length > 10;
+// Helper to build high-quality English visual prompts for AI Image/Video Generators aligned with niche & brand
+function buildEnglishVisualPrompt(
+  rawPrompt: string,
+  title: string,
+  style = 'modern',
+  mediaType: 'image' | 'video' = 'image'
+): string {
+  const isAscii = /^[\x00-\x7F\s\w.,!?-]+$/.test(rawPrompt || '') && (rawPrompt || '').trim().length > 15;
+
+  const nicheName = strategy.niche || 'Technology & Innovation';
+  const brandStyle = strategy.visualStyle || 'Modern Minimalist';
+  const brandName = (brandAssets as any).brandName || strategy.niche || '';
+  const primaryColor = brandAssets.primaryColor || '#6366f1';
+
+  let subjectText = (title || 'Instagram content').toLowerCase();
+
   if (isAscii && rawPrompt) {
-    return `${rawPrompt}, high quality 8k, professional instagram graphic design, trending on artstation`;
+    subjectText = rawPrompt.trim();
+  } else {
+    // Translate Persian keywords to English concepts relevant to user's niche
+    let translated = subjectText
+      .replace(/هوش مصنوعی|ai/gi, 'artificial intelligence AI digital innovation')
+      .replace(/اینستاگرام/g, 'instagram social media marketing strategy')
+      .replace(/فالوور/g, 'audience growth and engagement')
+      .replace(/ربات/g, 'automated digital assistant')
+      .replace(/برنامه‌نویسی|کدنویسی/g, 'modern software programming environment UI')
+      .replace(/کسب و کار|تجارت/g, 'contemporary office business workspace')
+      .replace(/تکنولوژی|فناوری/g, 'cutting-edge high technology innovation')
+      .replace(/ویدیو|فیلم|ریلز/g, 'cinematic vertical 9:16 video scene')
+      .replace(/عکس|تصویر/g, 'professional photography studio shot')
+      .replace(/کاروسل|اسلاید/g, 'clean infographic presentation slide')
+      .replace(/فروش|دیجیتال مارکتینگ/g, 'digital marketing performance analytics')
+      .replace(/آموزش|یادگیری/g, 'educational visualization concept')
+      .replace(/سلامت|تغذیه/g, 'wellness lifestyle and healthy living space')
+      .replace(/سرگرمی|بازی/g, 'vibrant media entertainment art')
+      .replace(/مالی|پول|سرمایه‌گذاری/g, 'fintech market growth chart');
+
+    translated = translated.replace(/[^\x00-\x7F]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (translated.length > 5) {
+      subjectText = translated;
+    }
   }
 
-  let text = (title || 'Instagram content').toLowerCase();
-  let translated = text
-    .replace(/هوش مصنوعی/g, 'artificial intelligence AI neural network')
-    .replace(/اینستاگرام/g, 'instagram social media marketing')
-    .replace(/فالوور/g, 'social media followers audience growth')
-    .replace(/ربات/g, 'futuristic robot automation')
-    .replace(/برنامه‌نویسی|کدنویسی/g, 'software development programming code')
-    .replace(/کسب و کار|تجارت/g, 'modern business office analytics strategy')
-    .replace(/تکنولوژی|فناوری/g, 'futuristic high technology glow interface')
-    .replace(/ویدیو|فیلم|ریلز/g, 'cinematic vertical video 9:16 production')
-    .replace(/عکس|تصویر/g, 'creative digital photography artwork')
-    .replace(/کاروسل|اسلاید/g, 'carousel slide infographic UI deck')
-    .replace(/فروش|دیجیتال مارکتینگ/g, 'digital marketing e-commerce sales growth')
-    .replace(/آموزش|یادگیری/g, 'educational infographic learning concept')
-    .replace(/سلامت|تغذیه/g, 'healthy lifestyle wellness fitness')
-    .replace(/سرگرمی|بازی/g, 'gaming entertainment graphic art')
-    .replace(/مالی|پول|سرمایه‌گذاری/g, 'finance money stock market cryptocurrency chart');
+  // Guarantee niche and brand alignment, strictly avoiding generic 3D asset clichés
+  if (mediaType === 'video') {
+    return `Cinematic 9:16 vertical video reel scene, subject: ${subjectText}, aligned with ${nicheName} niche, visual style: ${brandStyle}, realistic lighting, studio camera pan, high contrast depth of field, 8k resolution, crisp details, primary accent ${primaryColor}, photorealistic cinematic film frame, no generic 3d shapes, no watermark`;
+  }
 
-  translated = translated.replace(/[^\x00-\x7F]/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!translated) translated = 'minimalist modern instagram visual design artwork';
-
-  return `Professional Instagram post artwork, subject: ${translated}, style: ${style}, vibrant aesthetic colors, 8k resolution, highly detailed digital art, 3d render`;
+  return `High-end professional Instagram image artwork, subject: ${subjectText}, niche category: ${nicheName}, style: ${brandStyle} ${style}, studio lighting, clean editorial layout, 8k resolution, photorealistic quality, vibrant balanced colors with ${primaryColor} accent, no generic 3d render artifacts, no watermark`;
 }
 
 app.post('/api/posts/generate', async (req, res) => {
   try {
-    const { ideaTitle, ideaDescription, postType = 'post' } = req.body;
+    const { ideaTitle, ideaDescription, postType = 'post', style = 'editorial' } = req.body;
 
     // Handle carousel request
     if (postType === 'carousel') {
@@ -363,7 +383,7 @@ app.post('/api/posts/generate', async (req, res) => {
 
     let caption = '';
     let hashtags = strategy.defaultHashtags || ['#هوش_مصنوعی', '#تکنولوژی', '#اینستاگرام'];
-    let imagePrompt = buildEnglishVisualPrompt('', ideaTitle);
+    let imagePrompt = buildEnglishVisualPrompt('', ideaTitle, style, 'image');
     let generatedImageUrl = '';
     let profileName = 'موتور تولید محلی';
 
@@ -402,7 +422,7 @@ app.post('/api/posts/generate', async (req, res) => {
       const parsed = JSON.parse(response.text || '{}');
       if (parsed.caption) caption = parsed.caption;
       if (parsed.hashtags) hashtags = parsed.hashtags;
-      if (parsed.imagePrompt) imagePrompt = buildEnglishVisualPrompt(parsed.imagePrompt, ideaTitle);
+      if (parsed.imagePrompt) imagePrompt = buildEnglishVisualPrompt(parsed.imagePrompt, ideaTitle, style, 'image');
 
       // Try generating visual asset via Imagen or Pollinations AI
       try {
@@ -519,7 +539,7 @@ app.post('/api/carousels/generate', async (req, res) => {
 
       if (parsed.slides && Array.isArray(parsed.slides)) {
         slides = parsed.slides.map((s: any, idx: number) => {
-          const slidePromptText = buildEnglishVisualPrompt(s.imagePrompt || '', `${carouselTitle} - slide ${idx + 1} (${s.title || ''})`);
+          const slidePromptText = buildEnglishVisualPrompt(s.imagePrompt || '', `${carouselTitle} - slide ${idx + 1} (${s.title || ''})`, 'infographic', 'image');
           const slidePrompt = encodeURIComponent(slidePromptText);
           const seed = Math.floor(Math.random() * 999999) + idx;
           return {
@@ -671,17 +691,34 @@ app.post('/api/videos/generate', async (req, res) => {
       logSystem('warn', 'ai_engine', `تولید سناریوی ویدیو با الگوی پشتیبان (علت: ${aiErr.message || 'عدم دسترسی Gemini'})`);
       videoScript = `سلام به همه! در این ویدیو کوتاه می‌خوام راهکار بی‌نظیر ${videoTitle} رو نشونتون بدم. اگر دوست داری کارهات ۵ برابر سریع‌تر بشه، حتما تا آخر این ریلز همراه من باش!`;
       storyboard = [
-        { timestamp: '0:00 - 0:03', sceneDescription: 'قلاب بصری جذاب و متن تیتر هوشمند', voiceoverText: `آیا از روش‌های قدیمی ${videoTitle} خسته شدید؟`, visualPrompt: `Cyberpunk futuristic vertical 9:16 teaser of ${videoTitle}` },
-        { timestamp: '0:03 - 0:08', sceneDescription: 'معرفی راهکار کلیدی و نمایش کارکرد', voiceoverText: 'با این سیستم هوشمند در چند ثانیه همه‌چیز آماده میشه.', visualPrompt: `3D graphic animation showing AI processing ${videoTitle}` },
-        { timestamp: '0:08 - 0:12', sceneDescription: 'نمایش نتیجه نهایی شگفت‌انگیز', voiceoverText: 'سرعت و دقت خروجی واقعا شما رو شگفت‌زده میکنه!', visualPrompt: `Smooth motion graphic with high quality visual details` },
-        { timestamp: '0:12 - 0:15', sceneDescription: 'دعوت به فالو و ذخیره پست', voiceoverText: 'این ریلز رو ذخیره کن و برای دوستات بفرست!', visualPrompt: `Instagram follow and save button 3D animation` },
+        { timestamp: '0:00 - 0:03', sceneDescription: 'قلاب بصری جذاب و متن تیتر هوشمند', voiceoverText: `آیا از روش‌های قدیمی ${videoTitle} خسته شدید؟`, visualPrompt: `Cinematic vertical 9:16 portrait of a person discovering ${videoTitle}` },
+        { timestamp: '0:03 - 0:08', sceneDescription: 'معرفی راهکار کلیدی و نمایش کارکرد', voiceoverText: 'با این سیستم هوشمند در چند ثانیه همه‌چیز آماده میشه.', visualPrompt: `Futuristic digital dashboard UI showing AI workflow for ${videoTitle}` },
+        { timestamp: '0:08 - 0:12', sceneDescription: 'نمایش نتیجه نهایی شگفت‌انگیز', voiceoverText: 'سرعت و دقت خروجی واقعا شما رو شگفت‌زده میکنه!', visualPrompt: `Bright glowing modern victory concept graph for ${videoTitle}` },
+        { timestamp: '0:12 - 0:15', sceneDescription: 'دعوت به فالو و ذخیره پست', voiceoverText: 'این ریلز رو ذخیره کن و برای دوستات بفرست!', visualPrompt: `Instagram call to action follow and save 3d render` },
       ];
       caption = `🎬 سناریوی ویدیو و ریلز هوشمند: ${videoTitle}\n\n${videoScript}\n\n📌 ذخیره کنید تا گمش نکنید!`;
     }
 
-    const visualPromptText = buildEnglishVisualPrompt(videoPrompt, `Instagram vertical 9:16 Reel about ${videoTitle}`, 'cinematic');
+    // Attach high-quality unique AI scene images to every storyboard scene
+    storyboard = storyboard.map((scene: any, idx: number) => {
+      const scenePromptText = buildEnglishVisualPrompt(
+        scene.visualPrompt || '',
+        `${videoTitle} scene ${idx + 1}: ${scene.sceneDescription || ''}`,
+        'cinematic',
+        'video'
+      );
+      const cleanScenePrompt = encodeURIComponent(scenePromptText);
+      const seed = Math.floor(Math.random() * 999999) + idx * 1234;
+      return {
+        ...scene,
+        visualPrompt: scenePromptText,
+        imageUrl: scene.imageUrl || `https://image.pollinations.ai/prompt/${cleanScenePrompt}?width=720&height=1280&nologo=true&model=flux&seed=${seed}`,
+      };
+    });
+
+    const visualPromptText = buildEnglishVisualPrompt(videoPrompt, `Instagram vertical 9:16 Reel about ${videoTitle}`, 'cinematic', 'video');
     const coverPrompt = encodeURIComponent(visualPromptText);
-    const coverImageUrl = `https://image.pollinations.ai/prompt/${coverPrompt}?width=720&height=1280&nologo=true&model=flux&seed=${Math.floor(Math.random() * 999999)}`;
+    const coverImageUrl = storyboard[0]?.imageUrl || `https://image.pollinations.ai/prompt/${coverPrompt}?width=720&height=1280&nologo=true&model=flux&seed=${Math.floor(Math.random() * 999999)}`;
 
     const newVideoPost: PostItem = {
       id: `reel-${Date.now()}`,
