@@ -53,11 +53,11 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
   return (
     <div className="space-y-6">
       {/* Header & Filter Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#18181b] border border-[#27272a] p-6 rounded-3xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#18181b] border border-[#27272a] p-4 sm:p-6 rounded-3xl">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></span>
-            <h2 className="text-lg font-bold text-[#fafafa]">استودیو و لایه تایید انسانی محتوا (Human-in-the-Loop)</h2>
+            <h2 className="text-base sm:text-lg font-bold text-[#fafafa]">استودیو و لایه تایید انسانی محتوا (Human-in-the-Loop)</h2>
           </div>
           <p className="text-xs text-[#a1a1aa] mt-1">
             تمام محتوای جدید ابتدا وارد حالت "منتظر تایید" می‌شود تا قبل از انتشار در اینستاگرام، توسط ادمین ویرایش و تایید نهایی شود.
@@ -65,7 +65,7 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
         </div>
 
         {/* Filter Buttons */}
-        <div className="flex items-center gap-1.5 bg-[#09090b] p-1.5 rounded-2xl border border-[#27272a] text-xs">
+        <div className="flex items-center gap-1.5 bg-[#09090b] p-1.5 rounded-2xl border border-[#27272a] text-xs overflow-x-auto max-w-full no-scrollbar">
           {[
             { id: 'all', label: 'همه پست‌ها' },
             { id: 'pending_approval', label: 'منتظر تایید ادمین' },

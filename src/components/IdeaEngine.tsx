@@ -48,18 +48,18 @@ export const IdeaEngine: React.FC<IdeaEngineProps> = ({
         </p>
 
         {/* Brainstorm Form */}
-        <form onSubmit={handleGenerate} className="flex items-center gap-3 pt-2">
+        <form onSubmit={handleGenerate} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
           <input
             type="text"
             value={customTopic}
             onChange={(e) => setCustomTopic(e.target.value)}
             placeholder="موضوع خاص برای ایده پردازی (اختیاری، مثلا: ابزارهای طراحی، افزایش فروش...)"
-            className="flex-1 bg-[#09090b] border border-[#27272a] rounded-xl px-4 py-2.5 text-xs text-[#fafafa] focus:outline-none focus:border-indigo-500"
+            className="flex-1 bg-[#09090b] border border-[#27272a] rounded-xl px-4 py-3 text-xs text-[#fafafa] focus:outline-none focus:border-indigo-500 min-h-[44px]"
           />
           <button
             type="submit"
             disabled={isGenerating}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-2 shrink-0"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-5 py-3 rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2 shrink-0 min-h-[44px]"
           >
             <Sparkles className="w-4 h-4" />
             <span>{isGenerating ? 'در حال ایده پردازی...' : 'تولید ۳ ایده جدید با AI'}</span>

@@ -37,15 +37,15 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const publishedCount = posts.filter((p) => p.status === 'published').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Banner Notice - Bento Header */}
-      <div className="bg-[#18181b] border border-[#27272a] rounded-3xl p-6 relative overflow-hidden flex items-center justify-between">
+      <div className="bg-[#18181b] border border-[#27272a] rounded-3xl p-4 sm:p-6 relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-2 z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 bg-indigo-500/10 text-indigo-400 text-xs px-3 py-1 rounded-full font-medium border border-indigo-500/20">
             <Sparkles className="w-3.5 h-3.5" />
             <span>اتوماسیون ارگانیک فعال است</span>
           </div>
-          <h2 className="text-xl font-bold text-[#fafafa]">استودیو مدیریت هوشمند پیج اینستاگرام</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-[#fafafa]">استودیو مدیریت هوشمند پیج اینستاگرام</h2>
           <p className="text-xs text-[#a1a1aa] leading-relaxed">
             از ایده تا انتشار با API رسمی اینستاگرام، چرخش چندکلیدی Gemini API و تایید انسانی پیش از انتشار (Human-in-the-loop).
           </p>
@@ -53,7 +53,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 
         <button
           onClick={onQuickGenerate}
-          className="z-10 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-xl text-xs transition-all shadow-xl active:scale-95 shrink-0 flex items-center gap-2"
+          className="z-10 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 sm:px-5 py-3 sm:py-2.5 rounded-xl text-xs transition-all shadow-xl active:scale-95 shrink-0 flex items-center justify-center gap-2 min-h-[44px] w-full sm:w-auto"
         >
           <Sparkles className="w-4 h-4 text-white" />
           <span>تولید ایده و پست جدید</span>
