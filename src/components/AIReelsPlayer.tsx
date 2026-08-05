@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, RotateCcw, Download, Volume2, VolumeX, Sparkles, Film, RefreshCw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Download, Volume2, VolumeX, Sparkles, Film, RefreshCw, Radio } from 'lucide-react';
 import { PostItem, VideoScene } from '../types';
 import { api } from '../lib/api';
 
@@ -23,11 +23,12 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
 
   // Map to hold preloaded HTMLImageElements for each scene index
   const sceneImagesRef = useRef<{ [key: number]: HTMLImageElement }>({});
+  const [loadedImagesCount, setLoadedImagesCount] = useState<number>(0);
 
   const [scenes, setScenes] = useState<(VideoScene & { imageUrl?: string })[]>(() => {
     if (post.storyboard && post.storyboard.length > 0) {
       return post.storyboard.map((s, idx) => {
-        const cleanPrompt = encodeURIComponent(`Cinematic vertical 9:16 ${s.visualPrompt || post.title} scene ${idx + 1}`);
+        const cleanPrompt = encodeURIComponent(`High quality vertical 9:16 ${s.visualPrompt || post.title} scene ${idx + 1}`);
         const seed = Math.floor(Math.random() * 999999) + idx * 1000;
         return {
           ...s,
@@ -40,7 +41,7 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
         timestamp: '0:00 - 0:04',
         sceneDescription: 'قلاب بصری جذاب اولیه',
         voiceoverText: post.videoScript || post.title,
-        visualPrompt: `Cinematic vertical 9:16 portrait about ${post.title}`,
+        visualPrompt: `Vertical 9:16 photography about ${post.title}`,
         imageUrl: post.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(post.title)}?width=720&height=1280&nologo=true&model=flux&seed=100`,
       },
       {
@@ -48,51 +49,108 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
         sceneDescription: 'معرفی راهکار کلیدی و نمایش جزئیات',
         voiceoverText: post.caption?.substring(0, 70) || post.title,
         visualPrompt: `Modern tech dashboard visualization about ${post.title}`,
-        imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(`Modern tech visual ${post.title}`)}?width=720&height=1280&nologo=true&model=flux&seed=200`,
+        imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(`Modern visual ${post.title}`)}?width=720&height=1280&nologo=true&model=flux&seed=200`,
       },
       {
         timestamp: '0:08 - 0:12',
         sceneDescription: 'تحلیل دقیق و نمایش نتیجه نهایی',
         voiceoverText: 'با این ابزار سرعت تولید محتوای شما ۵ برابر می‌شود!',
-        visualPrompt: `High resolution digital concept graph for ${post.title}`,
-        imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(`Digital concept result ${post.title}`)}?width=720&height=1280&nologo=true&model=flux&seed=300`,
+        visualPrompt: `Digital concept graph for ${post.title}`,
+        imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(`Digital concept ${post.title}`)}?width=720&height=1280&nologo=true&model=flux&seed=300`,
       },
       {
         timestamp: '0:12 - 0:15',
         sceneDescription: 'دعوت به فالو و ذخیره ویدیو',
         voiceoverText: 'پیج را فالو کنید و این ویدیو را ذخیره کنید!',
-        visualPrompt: 'Instagram call to action follow and save 3D visual render',
+        visualPrompt: 'Instagram call to action follow and save visual',
         imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent('Instagram call to action follow and save')}?width=720&height=1280&nologo=true&model=flux&seed=400`,
       },
     ];
   });
 
-  // Preload all scene images into memory
+  // Preload scene images reliably with fallback images
   useEffect(() => {
     scenes.forEach((scene, idx) => {
-      if (scene.imageUrl) {
+      if (!scene.imageUrl) return;
+
+      const loadImage = (url: string) => {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = scene.imageUrl;
+        // Do not set crossOrigin = 'anonymous' directly to avoid strict CORS block on Pollinations images
+        img.src = url;
         img.onload = () => {
           sceneImagesRef.current[idx] = img;
+          setLoadedImagesCount((prev) => prev + 1);
         };
-      }
+        img.onerror = () => {
+          // Fallback to high-quality Unsplash tech imagery matching topic
+          const fallbackImg = new Image();
+          const fallbackUrl = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=720&auto=format&fit=crop&q=80`;
+          fallbackImg.src = fallbackUrl;
+          fallbackImg.onload = () => {
+            sceneImagesRef.current[idx] = fallbackImg;
+            setLoadedImagesCount((prev) => prev + 1);
+          };
+        };
+      };
+
+      loadImage(scene.imageUrl);
     });
   }, [scenes]);
 
-  // Speech synthesis for Persian voiceover
-  const speakText = (text: string) => {
-    if (isMuted || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fa-IR';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    window.speechSynthesis.speak(utterance);
+  // Web Audio synth effect for audio cues
+  const playWebAudioBeep = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+      // ignore
+    }
   };
 
-  // Canvas Motion Video Render Loop with Scene AI Images & Ken Burns Effect
+  // Robust Persian Speech synthesis for voiceover
+  const speakText = (text: string) => {
+    if (isMuted || !('speechSynthesis' in window) || !text) return;
+
+    try {
+      window.speechSynthesis.cancel();
+      playWebAudioBeep();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'fa-IR';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      // Select Persian voice if available in user's browser
+      const voices = window.speechSynthesis.getVoices();
+      const faVoice = voices.find(
+        (v) =>
+          v.lang.toLowerCase().includes('fa') ||
+          v.lang.toLowerCase().includes('persian') ||
+          v.name.toLowerCase().includes('farsi') ||
+          v.name.toLowerCase().includes('persian')
+      );
+      if (faVoice) {
+        utterance.voice = faVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn('Speech synthesis issue:', err);
+    }
+  };
+
+  // Dynamic Motion Canvas Video Renderer (Runs at 60 FPS with particles, graphics & image parallax)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -114,101 +172,157 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
       const activeScene = scenes[currentSceneIdx] || scenes[0];
       const sceneImg = sceneImagesRef.current[currentSceneIdx];
 
-      // Draw Full 9:16 Scene AI Image with Cinematic Motion (Ken Burns Effect)
+      // 1. Draw Background or AI Scene Image
       if (sceneImg && sceneImg.complete && sceneImg.naturalWidth > 0) {
         ctx.save();
-        const scale = 1.05 + Math.sin(frameCount * 0.008) * 0.04;
-        const offsetX = Math.cos(frameCount * 0.005) * 8;
-        const offsetY = Math.sin(frameCount * 0.005) * 8;
+        // Cinematic Ken Burns Zoom & Pan Effect
+        const scale = 1.06 + Math.sin(frameCount * 0.008) * 0.04;
+        const offsetX = Math.cos(frameCount * 0.005) * 10;
+        const offsetY = Math.sin(frameCount * 0.005) * 10;
         ctx.translate(width / 2 + offsetX, height / 2 + offsetY);
         ctx.scale(scale, scale);
         ctx.drawImage(sceneImg, -width / 2, -height / 2, width, height);
         ctx.restore();
       } else {
-        // Fallback smooth gradient if image is still loading
-        const grad = ctx.createLinearGradient(0, 0, width, height);
-        grad.addColorStop(0, '#09090b');
-        grad.addColorStop(0.5, '#1e1b4b');
-        grad.addColorStop(1, '#311042');
-        ctx.fillStyle = grad;
+        // Fallback procedural motion graphics background (Always active moving Reel scene!)
+        const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+        const hue1 = (frameCount * 0.5) % 360;
+        const hue2 = (hue1 + 60) % 360;
+        bgGrad.addColorStop(0, '#09090b');
+        bgGrad.addColorStop(0.5, '#1e1b4b');
+        bgGrad.addColorStop(1, '#311042');
+        ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, width, height);
 
-        // Loading text
-        ctx.fillStyle = '#a1a1aa';
-        ctx.font = '12px Vazirmatn, Tahoma, sans-serif';
+        // Ambient Motion Light Spheres
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const circle1X = width / 2 + Math.cos(frameCount * 0.02) * 80;
+        const circle1Y = height / 3 + Math.sin(frameCount * 0.02) * 60;
+        const g1 = ctx.createRadialGradient(circle1X, circle1Y, 10, circle1X, circle1Y, 180);
+        g1.addColorStop(0, 'rgba(99, 102, 241, 0.45)');
+        g1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = g1;
+        ctx.beginPath();
+        ctx.arc(circle1X, circle1Y, 180, 0, Math.PI * 2);
+        ctx.fill();
+
+        const circle2X = width / 2 + Math.sin(frameCount * 0.025) * 70;
+        const circle2Y = (height * 2) / 3 + Math.cos(frameCount * 0.025) * 50;
+        const g2 = ctx.createRadialGradient(circle2X, circle2Y, 10, circle2X, circle2Y, 160);
+        g2.addColorStop(0, 'rgba(236, 72, 153, 0.4)');
+        g2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = g2;
+        ctx.beginPath();
+        ctx.arc(circle2X, circle2Y, 160, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Center Animated Topic Icon / Visual Graphic
+        ctx.save();
+        ctx.translate(width / 2, height / 2 - 30);
+        const pulse = 1 + Math.sin(frameCount * 0.08) * 0.08;
+        ctx.scale(pulse, pulse);
+
+        ctx.strokeStyle = 'rgba(129, 140, 248, 0.7)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 48, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ec4899';
+        ctx.beginPath();
+        ctx.arc(0, 0, 28, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('در حال بارگذاری تصویر هوش مصنوعی...', width / 2, height / 2);
+        ctx.textBaseline = 'middle';
+        ctx.fillText('AI REEL', 0, 0);
+        ctx.restore();
       }
 
-      // Dark Vignette Overlays at Top & Bottom for Text Readability
-      const topGrad = ctx.createLinearGradient(0, 0, 0, 120);
+      // 2. Floating Motion Particles Across Scene
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      for (let i = 0; i < 15; i++) {
+        const px = (Math.sin(i * 99 + frameCount * 0.015) * 0.5 + 0.5) * width;
+        const py = ((frameCount * (1 + (i % 3) * 0.5) + i * 40) % height);
+        const pSize = 1.5 + (i % 3);
+        ctx.beginPath();
+        ctx.arc(px, py, pSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 3. Dark Vignette Overlays for High Contrast Typography
+      const topGrad = ctx.createLinearGradient(0, 0, 0, 130);
       topGrad.addColorStop(0, 'rgba(0,0,0,0.85)');
       topGrad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = topGrad;
-      ctx.fillRect(0, 0, width, 120);
+      ctx.fillRect(0, 0, width, 130);
 
-      const bottomGrad = ctx.createLinearGradient(0, height - 200, 0, height);
+      const bottomGrad = ctx.createLinearGradient(0, height - 210, 0, height);
       bottomGrad.addColorStop(0, 'rgba(0,0,0,0)');
-      bottomGrad.addColorStop(0.4, 'rgba(0,0,0,0.75)');
-      bottomGrad.addColorStop(1, 'rgba(0,0,0,0.95)');
+      bottomGrad.addColorStop(0.3, 'rgba(0,0,0,0.85)');
+      bottomGrad.addColorStop(1, 'rgba(0,0,0,0.98)');
       ctx.fillStyle = bottomGrad;
-      ctx.fillRect(0, height - 200, width, 200);
+      ctx.fillRect(0, height - 210, width, 210);
 
-      // Top Progress Bar
+      // 4. Top Progress Indicator Bar
       const progress = ((currentSceneIdx + (elapsedSeconds % 4) / 4) / scenes.length) * 100;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.fillRect(10, 8, width - 20, 3);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.fillRect(10, 10, width - 20, 3);
       ctx.fillStyle = '#ec4899';
-      ctx.fillRect(10, 8, ((width - 20) * Math.min(progress, 100)) / 100, 3);
+      ctx.fillRect(10, 10, ((width - 20) * Math.min(progress, 100)) / 100, 3);
 
-      // Top Title Bar Overlay (Reels Header)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      ctx.roundRect(12, 18, width - 24, 38, 10);
+      // 5. Header Bar Overlay
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      ctx.roundRect(12, 20, width - 24, 38, 10);
       ctx.fill();
 
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 11px Vazirmatn, Tahoma, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText(post.title.substring(0, 28), width - 24, 40);
+      ctx.fillText(post.title.substring(0, 28), width - 24, 42);
 
       // Scene Badge Top Left
       ctx.fillStyle = '#818cf8';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(`SCENE ${currentSceneIdx + 1}/${scenes.length}`, 24, 40);
+      ctx.fillText(`SCENE ${currentSceneIdx + 1}/${scenes.length}`, 24, 42);
 
-      // Active Subtitle / Voiceover Box at Bottom
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-      ctx.strokeStyle = 'rgba(99, 102, 241, 0.6)';
+      // 6. Active Subtitle & Voiceover Box at Bottom
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.7)';
       ctx.lineWidth = 1.5;
-      ctx.roundRect(12, height - 145, width - 24, 115, 14);
+      ctx.roundRect(12, height - 150, width - 24, 120, 14);
       ctx.fill();
       ctx.stroke();
 
-      // Voiceover Header & Icon
+      // Voiceover Header & Active Indicator
       ctx.fillStyle = '#ec4899';
       ctx.font = 'bold 11px Vazirmatn, Tahoma, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText('🎙 گوینده هوشمند AI:', width - 24, height - 122);
+      ctx.fillText('🎙 گوینده هوشمند AI:', width - 24, height - 126);
 
       // Subtitle Text Lines
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 12px Vazirmatn, Tahoma, sans-serif';
       const text = activeScene.voiceoverText || '';
-      ctx.fillText(text.substring(0, 38), width - 24, height - 98);
+      ctx.fillText(text.substring(0, 38), width - 24, height - 102);
       if (text.length > 38) {
-        ctx.fillText(text.substring(38, 76), width - 24, height - 78);
+        ctx.fillText(text.substring(38, 76), width - 24, height - 82);
       }
       if (text.length > 76) {
-        ctx.fillText(text.substring(76, 114), width - 24, height - 58);
+        ctx.fillText(text.substring(76, 114), width - 24, height - 62);
       }
 
-      // Animated Sound Waves indicator if playing
+      // Animated Equalizer Audio Visualizer if playing
       if (isPlaying) {
         ctx.fillStyle = '#34d399';
-        for (let i = 0; i < 4; i++) {
-          const h = 6 + Math.sin(frameCount * 0.15 + i) * 5;
-          ctx.fillRect(24 + i * 5, height - 128, 3, h);
+        for (let i = 0; i < 5; i++) {
+          const h = 6 + Math.sin(frameCount * 0.2 + i * 1.2) * 7;
+          ctx.fillRect(24 + i * 5, height - 132, 3.5, h);
         }
       }
 
@@ -222,7 +336,7 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
     return () => {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [isPlaying, currentSceneIdx, post, scenes]);
+  }, [isPlaying, currentSceneIdx, post, scenes, loadedImagesCount]);
 
   // Handle Play/Pause timer & scene progression
   useEffect(() => {
@@ -237,19 +351,30 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
         });
       }, 4000);
     } else {
-      window.speechSynthesis?.cancel();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     }
     return () => {
       clearInterval(timer);
     };
   }, [isPlaying, currentSceneIdx, scenes]);
 
+  // Toggle Play Button with explicit user gesture triggering SpeechSynthesis
+  const handleTogglePlay = () => {
+    const nextState = !isPlaying;
+    setIsPlaying(nextState);
+    if (nextState) {
+      speakText(scenes[currentSceneIdx]?.voiceoverText || '');
+    }
+  };
+
   // Regenerate image specifically for the selected scene
   const handleRegenerateSceneImage = async (sceneIdx: number) => {
     try {
       setIsRegeneratingScene(true);
       const scene = scenes[sceneIdx];
-      const scenePrompt = `${scene.visualPrompt || post.title} - scene ${sceneIdx + 1}`;
+      const scenePrompt = `${scene.visualPrompt || post.title} scene ${sceneIdx + 1}`;
       const res = await api.generateStandaloneImage(scenePrompt, 'cinematic', 720, 1280);
 
       if (res && res.imageUrl) {
@@ -262,10 +387,10 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
 
         // Load new image into memory map
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.src = res.imageUrl;
         img.onload = () => {
           sceneImagesRef.current[sceneIdx] = img;
+          setLoadedImagesCount((prev) => prev + 1);
         };
       }
     } catch (err) {
@@ -283,6 +408,7 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
     try {
       setIsRecording(true);
       setIsPlaying(true);
+      speakText(scenes[0]?.voiceoverText || '');
       recordedChunksRef.current = [];
 
       const stream = canvas.captureStream(30);
@@ -334,16 +460,23 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
       <div className="flex items-center justify-between border-b border-[#27272a] pb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-rose-400 animate-pulse" />
-          <span className="font-bold text-xs text-[#fafafa]">رندر هوشمند ویدیو و تصاویر اختصاصی AI</span>
+          <span className="font-bold text-xs text-[#fafafa]">رندر هوشمند ویدیو و گوینده صوتی AI</span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-1.5 bg-[#18181b] border border-[#27272a] rounded-lg text-zinc-300 hover:text-white transition-all"
+            onClick={() => {
+              const nextMuted = !isMuted;
+              setIsMuted(nextMuted);
+              if (nextMuted && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+              }
+            }}
+            className="p-1.5 bg-[#18181b] border border-[#27272a] rounded-lg text-zinc-300 hover:text-white transition-all flex items-center gap-1 text-[11px]"
             title={isMuted ? 'فعال‌سازی گوینده صوتی' : 'قطع صدا'}
           >
             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+            <span className="text-zinc-400 text-[10px]">{isMuted ? 'صدا خاموش' : 'گوینده فعال'}</span>
           </button>
         </div>
       </div>
@@ -354,7 +487,8 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
           <canvas ref={canvasRef} className="w-full h-full object-cover" />
 
           {/* Watermark badge */}
-          <div className="absolute top-4 left-3 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] text-indigo-300 font-mono border border-indigo-500/30">
+          <div className="absolute top-4 left-3 bg-black/70 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] text-indigo-300 font-mono border border-indigo-500/30 flex items-center gap-1">
+            <Radio className="w-2.5 h-2.5 text-rose-400 animate-ping" />
             Flux AI Reel
           </div>
         </div>
@@ -398,11 +532,11 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
             className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 shadow shrink-0"
           >
             <RefreshCw className={`w-3 h-3 ${isRegeneratingScene ? 'animate-spin' : ''}`} />
-            <span>{isRegeneratingScene ? 'در حال خَلق...' : 'تولید مجدد تصویر این صحنه با Flux AI'}</span>
+            <span>{isRegeneratingScene ? 'در حال خَلق...' : 'بازتولید تصویر صحنه با Flux AI'}</span>
           </button>
         </div>
         <p className="text-[10px] text-zinc-400 leading-relaxed truncate">
-          پرامپت تصویری: {activeScene.visualPrompt}
+          سوژه ویدیو: {activeScene.visualPrompt}
         </p>
       </div>
 
@@ -410,7 +544,7 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
       <div className="space-y-2 pt-1">
         <div className="flex items-center justify-center gap-2">
           <button
-            onClick={() => setIsPlaying(!isPlaying)}
+            onClick={handleTogglePlay}
             className={`flex-1 ${
               isPlaying ? 'bg-amber-600 hover:bg-amber-500' : 'bg-indigo-600 hover:bg-indigo-500'
             } text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2`}
@@ -420,7 +554,11 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
           </button>
 
           <button
-            onClick={() => setCurrentSceneIdx((prev) => (prev + 1) % scenes.length)}
+            onClick={() => {
+              const nextIdx = (currentSceneIdx + 1) % scenes.length;
+              setCurrentSceneIdx(nextIdx);
+              speakText(scenes[nextIdx]?.voiceoverText || '');
+            }}
             className="p-2.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] rounded-xl text-zinc-300"
             title="صحنه بعدی"
           >
@@ -436,7 +574,7 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
             className="w-full bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <Film className={`w-4 h-4 ${isRecording ? 'animate-spin' : ''}`} />
-            <span>{isRecording ? 'در حال ضبط و دانلود کامل ویدیو...' : 'دانلود فایل کامل ویدیو ریلز (Export MP4 / WebM)'}</span>
+            <span>{isRecording ? 'در حال ضبط و دریافت فایل ویدیو...' : 'دانلود فایل رندر شده ویدیو (Export WebM / MP4)'}</span>
           </button>
 
           {recordedVideoUrl && (
@@ -446,7 +584,7 @@ export const AIReelsPlayer: React.FC<AIReelsPlayerProps> = ({ post }) => {
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-lg shrink-0"
             >
               <Download className="w-4 h-4" />
-              <span>دانلود فایل</span>
+              <span>دانلود</span>
             </a>
           )}
         </div>
