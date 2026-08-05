@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: instabot_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./data:/app/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: instabot_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  instabot_data:

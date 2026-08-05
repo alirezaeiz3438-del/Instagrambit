@@ -1,0 +1,6 @@
+{
+  "name": "InstaBot AI Studio - Instagram Automation",
+  "description": "Full-stack AI Content Creation Studio & Automation Bot for Instagram with Multi-Key Gemini API rotation, Idea Engine, Ad Filter, Human-in-the-Loop review, and VPS bash installer script.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
