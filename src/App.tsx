@@ -6,6 +6,7 @@ import { AIProfilesManager } from './components/AIProfilesManager';
 import { StrategySettings } from './components/StrategySettings';
 import { IdeaEngine } from './components/IdeaEngine';
 import { ContentStudio } from './components/ContentStudio';
+import { VideoStudio } from './components/VideoStudio';
 import { ContentCalendar } from './components/ContentCalendar';
 import { AdFilterSettings } from './components/AdFilterSettings';
 import { AnalyticsFeedback } from './components/AnalyticsFeedback';
@@ -239,6 +240,15 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'video-studio' && (
+            <VideoStudio
+              posts={posts}
+              onRefresh={loadData}
+              onPublishNow={handlePublishPostNow}
+              onUpdatePost={handleUpdatePost}
+            />
+          )}
+
           {activeTab === 'content-studio' && (
             <ContentStudio
               posts={posts}
@@ -246,6 +256,7 @@ export default function App() {
               onDeletePost={handleDeletePost}
               onPublishNow={handlePublishPostNow}
               onNavigateToCalendar={() => setActiveTab('calendar')}
+              onRefresh={loadData}
             />
           )}
 

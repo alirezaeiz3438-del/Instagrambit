@@ -14,6 +14,7 @@ import {
   Activity,
   Bot,
   X,
+  Video,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -33,10 +34,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const menuItems = [
     { id: 'dashboard', label: 'داشبورد اصلی', icon: LayoutDashboard },
+    { id: 'video-studio', label: 'استودیو ویدیو و ریلز AI', icon: Video, badge: 'Sora/Veo' },
+    { id: 'content-studio', label: 'استودیو و تایید محتوا', icon: FileText, badge: 'Human Review' },
+    { id: 'idea-engine', label: 'موتور ایده و تلگرام', icon: Lightbulb },
     { id: 'ai-keys', label: 'مدیریت کلیدهای AI', icon: Key, badge: 'Multi-Key' },
     { id: 'strategy', label: 'هویت و استراتژی پیج', icon: Sliders },
-    { id: 'idea-engine', label: 'موتور ایده و تلگرام', icon: Lightbulb },
-    { id: 'content-studio', label: 'استودیو و تایید محتوا', icon: FileText, badge: 'Human Review' },
     { id: 'calendar', label: 'تقویم انتشار', icon: Calendar },
     { id: 'ad-filter', label: 'فیلتر تبلیغات (Ad Filter)', icon: ShieldAlert },
     { id: 'analytics', label: 'آنالیتیکس و یادگیری AI', icon: BarChart3 },

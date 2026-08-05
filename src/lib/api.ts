@@ -115,6 +115,25 @@ export const api = {
     return data.post;
   },
 
+  regenerateImage: async (postId: string, customPrompt?: string): Promise<{ imageUrl: string; post?: PostItem }> => {
+    const res = await fetch('/api/images/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId, customPrompt }),
+    });
+    return res.json();
+  },
+
+  generateVideo: async (videoTitle: string, videoTopic?: string, durationSeconds: number = 15): Promise<PostItem> => {
+    const res = await fetch('/api/videos/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ videoTitle, videoTopic, durationSeconds }),
+    });
+    const data = await res.json();
+    return data.post;
+  },
+
   updatePost: async (id: string, postData: Partial<PostItem>): Promise<PostItem> => {
     const res = await fetch(`/api/posts/${id}`, {
       method: 'PUT',

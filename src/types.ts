@@ -39,6 +39,13 @@ export interface PostMetrics {
   engagementRate: number;
 }
 
+export interface VideoScene {
+  timestamp: string;
+  sceneDescription: string;
+  voiceoverText: string;
+  visualPrompt: string;
+}
+
 export interface PostItem {
   id: string;
   title: string;
@@ -46,6 +53,10 @@ export interface PostItem {
   hashtags: string[];
   imagePrompt: string;
   imageUrl?: string;
+  videoUrl?: string;
+  videoPrompt?: string;
+  videoScript?: string;
+  storyboard?: VideoScene[];
   postType: PostType;
   status: PostStatus;
   createdAt: string;
