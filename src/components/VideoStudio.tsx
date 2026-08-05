@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Video, Sparkles, Play, Pause, RefreshCw, Send, CheckCircle2, Film, Layers, Volume2, Clapperboard, Clock } from 'lucide-react';
 import { PostItem } from '../types';
 import { api } from '../lib/api';
+import { AIReelsPlayer } from './AIReelsPlayer';
 
 interface VideoStudioProps {
   posts: PostItem[];
@@ -176,29 +177,13 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({
 
                 {/* Main Player & Storyboard Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                  {/* Left: Video Reel Preview Player */}
-                  <div className="md:col-span-5 flex flex-col items-center">
-                    <div className="relative aspect-[9/16] w-full max-w-[220px] rounded-2xl overflow-hidden bg-black border border-[#27272a] shadow-lg group">
-                      {post.videoUrl ? (
-                        <video
-                          src={post.videoUrl}
-                          poster={post.imageUrl}
-                          controls
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
-                      )}
-
-                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white font-mono flex items-center gap-1 border border-white/10">
-                        <Clock className="w-3 h-3 text-rose-400" />
-                        <span>Reels 9:16</span>
-                      </div>
-                    </div>
+                  {/* Left: AI Reels Canvas & Video Player */}
+                  <div className="md:col-span-6 flex flex-col items-center">
+                    <AIReelsPlayer post={post} />
                   </div>
 
                   {/* Right: AI Voiceover & Storyboard */}
-                  <div className="md:col-span-7 space-y-3 flex flex-col justify-between">
+                  <div className="md:col-span-6 space-y-3 flex flex-col justify-between">
                     {/* Voiceover Script */}
                     {post.videoScript && (
                       <div className="bg-[#09090b] p-3 rounded-2xl border border-[#27272a] space-y-1">

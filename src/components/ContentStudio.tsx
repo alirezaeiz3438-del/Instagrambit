@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { PostItem, PostStatus, CarouselSlide } from '../types';
 import { api } from '../lib/api';
+import { AIPosterCanvas } from './AIPosterCanvas';
+import { AIReelsPlayer } from './AIReelsPlayer';
 
 interface ContentStudioProps {
   posts: PostItem[];
@@ -345,48 +347,20 @@ export const ContentStudio: React.FC<ContentStudioProps> = ({
 
             {/* Instagram Mockup Render */}
             <div className="p-4 space-y-3">
-              {/* Media Preview: Carousel, Video or Image */}
+              {/* Media Preview: Carousel, Video Reel or Image Canvas */}
               {post.carouselSlides && post.carouselSlides.length > 0 ? (
                 <CarouselViewer post={post} />
-              ) : post.videoUrl ? (
-                <div className="relative aspect-[9/16] max-h-[360px] mx-auto w-full rounded-2xl overflow-hidden bg-black border border-[#27272a] shadow-lg group">
-                  <video src={post.videoUrl} poster={post.imageUrl} controls className="w-full h-full object-cover" />
-                  <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white font-mono flex items-center gap-1">
-                    <Film className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Reels / Video</span>
-                  </div>
-                </div>
-              ) : post.imageUrl ? (
-                <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#09090b] border border-[#27272a] group">
-                  <img src={post.imageUrl} alt="" className="w-full h-full object-cover" />
-
-                  {/* Overlay for regenerating image with AI */}
-                  <div className="absolute inset-0 bg-[#09090b]/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center p-4 gap-2">
-                    <button
-                      onClick={() => handleRegenerateImage(post.id)}
-                      disabled={regeneratingImageId === post.id}
-                      className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${regeneratingImageId === post.id ? 'animate-spin' : ''}`} />
-                      <span>{regeneratingImageId === post.id ? 'در حال خلق تصویر...' : 'تولید تصویر مجدد با AI'}</span>
-                    </button>
-                    <span className="text-[10px] text-[#a1a1aa] bg-[#18181b] px-2.5 py-1 rounded-lg font-mono border border-[#27272a]">
-                      Prompt: {post.imagePrompt?.substring(0, 45)}...
-                    </span>
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Regenerate Image Button if no image yet */}
-              {!post.imageUrl && !post.videoUrl && (!post.carouselSlides || post.carouselSlides.length === 0) && (
-                <button
-                  onClick={() => handleRegenerateImage(post.id)}
-                  disabled={regeneratingImageId === post.id}
-                  className="w-full bg-[#09090b] border border-[#27272a] hover:border-indigo-500/50 p-4 rounded-2xl text-xs text-[#a1a1aa] hover:text-[#fafafa] transition-all flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
-                  <span>تولید پوستر تصویری با AI</span>
-                </button>
+              ) : post.postType === 'reels' || post.videoScript ? (
+                <AIReelsPlayer post={post} />
+              ) : (
+                <AIPosterCanvas
+                  title={post.title}
+                  prompt={post.imagePrompt}
+                  imageUrl={post.imageUrl}
+                  badgeText={post.postType === 'story' ? 'Instagram Story' : 'Instagram Post'}
+                  onRegenerate={() => handleRegenerateImage(post.id)}
+                  isRegenerating={regeneratingImageId === post.id}
+                />
               )}
 
               {/* Caption */}
