@@ -315,42 +315,41 @@ app.get('/api/posts', (req, res) => {
   res.json({ posts });
 });
 
-// Helper to build high-quality English visual prompts for AI Image/Video Generators aligned with niche & brand
+// Helper to build high-quality English visual prompts for AI Image/Video Generators aligned with niche & subject
 function buildEnglishVisualPrompt(
   rawPrompt: string,
   title: string,
   style = 'modern',
   mediaType: 'image' | 'video' = 'image'
 ): string {
-  const isAscii = /^[\x00-\x7F\s\w.,!?-]+$/.test(rawPrompt || '') && (rawPrompt || '').trim().length > 15;
+  const isAscii = /^[\x00-\x7F\s\w.,!?-]+$/.test(rawPrompt || '') && (rawPrompt || '').trim().length > 12;
 
   const nicheName = strategy.niche || 'Technology & Innovation';
   const brandStyle = strategy.visualStyle || 'Modern Minimalist';
-  const brandName = (brandAssets as any).brandName || strategy.niche || '';
   const primaryColor = brandAssets.primaryColor || '#6366f1';
 
-  let subjectText = (title || 'Instagram content').toLowerCase();
+  let subjectText = (title || 'Subject illustration').toLowerCase();
 
   if (isAscii && rawPrompt) {
     subjectText = rawPrompt.trim();
   } else {
-    // Translate Persian keywords to English concepts relevant to user's niche
+    // Translate Persian keywords to English subject concepts
     let translated = subjectText
-      .replace(/هوش مصنوعی|ai/gi, 'artificial intelligence AI digital innovation')
-      .replace(/اینستاگرام/g, 'instagram social media marketing strategy')
-      .replace(/فالوور/g, 'audience growth and engagement')
-      .replace(/ربات/g, 'automated digital assistant')
-      .replace(/برنامه‌نویسی|کدنویسی/g, 'modern software programming environment UI')
-      .replace(/کسب و کار|تجارت/g, 'contemporary office business workspace')
-      .replace(/تکنولوژی|فناوری/g, 'cutting-edge high technology innovation')
-      .replace(/ویدیو|فیلم|ریلز/g, 'cinematic vertical 9:16 video scene')
-      .replace(/عکس|تصویر/g, 'professional photography studio shot')
-      .replace(/کاروسل|اسلاید/g, 'clean infographic presentation slide')
-      .replace(/فروش|دیجیتال مارکتینگ/g, 'digital marketing performance analytics')
-      .replace(/آموزش|یادگیری/g, 'educational visualization concept')
-      .replace(/سلامت|تغذیه/g, 'wellness lifestyle and healthy living space')
-      .replace(/سرگرمی|بازی/g, 'vibrant media entertainment art')
-      .replace(/مالی|پول|سرمایه‌گذاری/g, 'fintech market growth chart');
+      .replace(/هوش مصنوعی|ai/gi, 'artificial intelligence neural network digital interface')
+      .replace(/اینستاگرام/g, 'digital content creator workstation')
+      .replace(/فالوور/g, 'audience growth dashboard visualization')
+      .replace(/ربات/g, 'futuristic humanoid robot assistant')
+      .replace(/برنامه‌نویسی|کدنویسی/g, 'software developer coding on multi monitors')
+      .replace(/کسب و کار|تجارت/g, 'modern corporate office strategy meeting')
+      .replace(/تکنولوژی|فناوری/g, 'cutting edge tech gadget laboratory')
+      .replace(/ویدیو|فیلم|ریلز/g, 'filmmaker camera production set')
+      .replace(/عکس|تصویر/g, 'professional photography studio camera')
+      .replace(/کاروسل|اسلاید/g, 'modern visual presentation diagram')
+      .replace(/فروش|دیجیتال مارکتینگ/g, 'e-commerce sales analytics and growth graph')
+      .replace(/آموزش|یادگیری/g, 'interactive classroom learning environment')
+      .replace(/سلامت|تغذیه/g, 'healthy fresh organic bowl and wellness gym')
+      .replace(/سرگرمی|بازی/g, 'vibrant esports gaming setup')
+      .replace(/مالی|پول|سرمایه‌گذاری/g, 'financial market stock chart and crypto trading');
 
     translated = translated.replace(/[^\x00-\x7F]/g, ' ').replace(/\s+/g, ' ').trim();
     if (translated.length > 5) {
@@ -358,12 +357,20 @@ function buildEnglishVisualPrompt(
     }
   }
 
-  // Guarantee niche and brand alignment, strictly avoiding generic 3D asset clichés
-  if (mediaType === 'video') {
-    return `Cinematic 9:16 vertical video reel scene, subject: ${subjectText}, aligned with ${nicheName} niche, visual style: ${brandStyle}, realistic lighting, studio camera pan, high contrast depth of field, 8k resolution, crisp details, primary accent ${primaryColor}, photorealistic cinematic film frame, no generic 3d shapes, no watermark`;
+  // Remove meta keywords that trick image models into rendering poster layouts or text covers
+  subjectText = subjectText
+    .replace(/\b(cover|poster|banner|template|layout|instagram artwork|post artwork|slide cover|thumbnail|text|typography|logo|border|frame)\b/gi, '')
+    .trim();
+
+  if (!subjectText) {
+    subjectText = `${nicheName} subject matter`;
   }
 
-  return `High-end professional Instagram image artwork, subject: ${subjectText}, niche category: ${nicheName}, style: ${brandStyle} ${style}, studio lighting, clean editorial layout, 8k resolution, photorealistic quality, vibrant balanced colors with ${primaryColor} accent, no generic 3d render artifacts, no watermark`;
+  if (mediaType === 'video') {
+    return `Cinematic 9:16 vertical motion camera shot of ${subjectText}, realistic photography, dynamic action scene, high contrast depth of field, professional lighting, 8k resolution, crisp details, photorealistic film scene, no text, no watermark, no poster layout`;
+  }
+
+  return `High quality realistic photograph of ${subjectText}, realistic scene in ${nicheName} context, ${brandStyle} aesthetic, studio lighting, vivid sharp focus, 8k resolution, detailed photography, color accent ${primaryColor}, no text, no letters, no watermark, no poster design, no cover layout`;
 }
 
 app.post('/api/posts/generate', async (req, res) => {
@@ -404,13 +411,13 @@ app.post('/api/posts/generate', async (req, res) => {
 یک پست کامل اینستاگرام بسازید شامل:
 ۱. کپشن جذاب با قلاب در سطر اول، بدنه با بخش‌بندی منظم و ایموجی، و فراخوان به عمل (CTA)
 ۲. ۵ تا ۱۰ هشتگ تخصصی و پربازدید به زبان فارسی
-۳. یک پرامپت تصویری توصیفی به زبان انگلیسی (۲0 الی ۴۰ کلمه) برای AI Image Generator که دقیقا موضوع و سوژه این پست را خَلق کند.
+۳. یک پرامپت تصویری توصیفی به زبان انگلیسی (۲۵ الی ۴۵ کلمه) برای AI Image Generator. فقط صحنه، سوژه، اشیاء، افراد، نورپردازی و محیط واقعی موضوع را توصیف کند و به هیچ عنوان کلمات 'کاور'، 'پوستر'، 'متن'، 'اینستاگرام' یا 'لوگو' نداشته باشد.
 
 پاسخ را دقیقا به ساختار JSON زیر ارسال کنید:
 {
   "caption": "متن کامل کپشن فارسی",
   "hashtags": ["#هشتگ۱", "#هشتگ۲"],
-  "imagePrompt": "Detailed English image generation prompt describing subject, composition, and style"
+  "imagePrompt": "Detailed photorealistic English scene prompt describing real subject matter without text or cover layout words"
 }`;
 
       const response = await ai.models.generateContent({
@@ -423,6 +430,8 @@ app.post('/api/posts/generate', async (req, res) => {
       if (parsed.caption) caption = parsed.caption;
       if (parsed.hashtags) hashtags = parsed.hashtags;
       if (parsed.imagePrompt) imagePrompt = buildEnglishVisualPrompt(parsed.imagePrompt, ideaTitle, style, 'image');
+
+      logSystem('info', 'ai_engine', `پرامپت تصویری ارسالی به موتور هوش مصنوعی: "${imagePrompt}"`);
 
       // Try generating visual asset via Imagen or Pollinations AI
       try {
